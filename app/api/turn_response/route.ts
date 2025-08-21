@@ -1,18 +1,30 @@
-import { MODEL } from "@/config/constants";
+import { getDeveloperPrompt, MODEL } from "@/config/constants";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { getFreshAccessToken } from "@/lib/googleTokens";
+import { withGoogleConnector } from "@/lib/tools/connectors";
 
 export async function POST(request: Request) {
   try {
-    const { messages, tools } = await request.json();
+    const { messages, tools, googleIntegrationEnabled } = await request.json();
     console.log("Received messages:", messages);
+
+    // Get fresh tokens (refresh if near expiry or missing access token when refresh exists)
+    const { accessToken } = await getFreshAccessToken();
+
+    // Build tools list, conditionally adding the Google Calendar connector via MCP
+    const toolsWithConnector = withGoogleConnector(
+      Array.isArray(tools) ? tools : [],
+      { enabled: Boolean(googleIntegrationEnabled), accessToken }
+    );
 
     const openai = new OpenAI();
 
     const events = await openai.responses.create({
       model: MODEL,
       input: messages,
-      tools,
+      instructions: getDeveloperPrompt(),
+      tools: toolsWithConnector as any,
       stream: true,
       parallel_tool_calls: false,
     });

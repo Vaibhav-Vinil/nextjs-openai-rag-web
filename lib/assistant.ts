@@ -1,8 +1,8 @@
-import { DEVELOPER_PROMPT } from "@/config/constants";
 import { parse } from "partial-json";
 import { handleTool } from "@/lib/tools/tools-handling";
 import useConversationStore from "@/stores/useConversationStore";
 import { getTools } from "./tools/tools";
+import useToolsStore from "@/stores/useToolsStore";
 import { Annotation } from "@/components/annotations";
 import { functionsMap } from "@/config/functions";
 
@@ -78,6 +78,7 @@ export const handleTurn = async (
   onMessage: (data: any) => void
 ) => {
   try {
+    const { googleIntegrationEnabled } = useToolsStore.getState();
     // Get response from the API (defined in app/api/turn_response/route.ts)
     const response = await fetch("/api/turn_response", {
       method: "POST",
@@ -85,6 +86,7 @@ export const handleTurn = async (
       body: JSON.stringify({
         messages: messages,
         tools: tools,
+        googleIntegrationEnabled,
       }),
     });
 
@@ -144,14 +146,7 @@ export const processMessages = async () => {
   } = useConversationStore.getState();
 
   const tools = getTools();
-  const allConversationItems = [
-    // Adding developer prompt as first item in the conversation
-    {
-      role: "developer",
-      content: DEVELOPER_PROMPT,
-    },
-    ...conversationItems,
-  ];
+  const allConversationItems = conversationItems;
 
   let assistantMessageContent = "";
   let functionArguments = "";
@@ -507,18 +502,20 @@ export const processMessages = async () => {
         console.log("response completed", data);
         const { response } = data;
 
-        // Handle MCP tools list
-        const mcpListToolsMessage = response.output.find(
+        // Handle MCP tools list (append all lists, not just the first)
+        const mcpListToolsMessages = response.output.filter(
           (m: Item) => m.type === "mcp_list_tools"
-        );
+        ) as McpListToolsItem[];
 
-        if (mcpListToolsMessage) {
-          chatMessages.push({
-            type: "mcp_list_tools",
-            id: mcpListToolsMessage.id,
-            server_label: mcpListToolsMessage.server_label,
-            tools: mcpListToolsMessage.tools || [],
-          });
+        if (mcpListToolsMessages && mcpListToolsMessages.length > 0) {
+          for (const msg of mcpListToolsMessages) {
+            chatMessages.push({
+              type: "mcp_list_tools",
+              id: msg.id,
+              server_label: msg.server_label,
+              tools: msg.tools || [],
+            });
+          }
           setChatMessages([...chatMessages]);
         }
 
