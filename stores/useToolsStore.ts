@@ -39,6 +39,8 @@ interface StoreState {
   functionsEnabled: boolean;
   //previousFunctionsEnabled: boolean;
   setFunctionsEnabled: (enabled: boolean) => void;
+  googleIntegrationEnabled: boolean;
+  setGoogleIntegrationEnabled: (enabled: boolean) => void;
   codeInterpreterEnabled: boolean;
   setCodeInterpreterEnabled: (enabled: boolean) => void;
   vectorStore: VectorStore | null;
@@ -82,6 +84,10 @@ const useToolsStore = create<StoreState>()(
       previousFunctionsEnabled: true,
       setFunctionsEnabled: (enabled) => {
         set({ functionsEnabled: enabled });
+      },
+      googleIntegrationEnabled: false,
+      setGoogleIntegrationEnabled: (enabled) => {
+        set({ googleIntegrationEnabled: enabled });
       },
       mcpEnabled: false,
       setMcpEnabled: (enabled) => {
