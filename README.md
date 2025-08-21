@@ -61,7 +61,7 @@ This app is meant to be used as a starting point to build a conversational assis
 
 ## Google integration (Calendar & Gmail)
 
-This starter app includes a built-in Google integration that lets the assistant read your calendar and send email via OpenAI's 1P connectors. The app performs a secure OAuth (PKCE) flow in your browser, stores tokens per session, and attaches the Google connector to the Responses API tool list at request time.
+This starter app includes a built-in Google integration that lets the assistant read your calendar and email inbox via OpenAI's 1P connectors. The app performs a secure OAuth (PKCE) flow in your browser, stores tokens per session, and attaches the Google connector to the Responses API tool list at request time.
 
 ### Setup (Google OAuth)
 
@@ -96,7 +96,7 @@ This starter app includes a built-in Google integration that lets the assistant 
 ### Demo flow
 
 - Click "Connect Google Integration" in the UI and complete the OAuth flow; you will be redirected back with `connected=1`.
-- Ask the assistant to perform tasks—for example, "Show my next five calendar events," or, "Send a summary of my calendar to name@domain.com."
+- Ask the assistant to perform tasks—for example, "Show my next five calendar events," or, "Summarize the most recent wirecutter emails".
 - The app will attach Google Calendar and Gmail connectors (via MCP) to the tool list using your access token and stream results back to the UI.
 - To invalidate the OAuth session, clear the app cookies (Chrome DevTools > Application > Storage > Cookies). If you only clear `gc_access_token`, the app will use the `gc_refresh_token` to refresh without re-authenticating.
 
