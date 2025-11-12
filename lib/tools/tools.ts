@@ -26,6 +26,8 @@ export const getTools = async (toolsState: ToolsState) => {
     const webSearchTool: WebSearchTool = {
       type: "web_search",
     };
+    
+    // Add user location if provided
     if (
       webSearchConfig.user_location &&
       (webSearchConfig.user_location.country !== "" ||
@@ -33,6 +35,16 @@ export const getTools = async (toolsState: ToolsState) => {
         webSearchConfig.user_location.city !== "")
     ) {
       webSearchTool.user_location = webSearchConfig.user_location;
+    }
+
+    // Add domain filters if provided
+    if (webSearchConfig.filters?.allowed_domains?.length) {
+      webSearchTool.filters = {
+        allowed_domains: webSearchConfig.filters.allowed_domains
+          .map(domain => domain.trim())
+          .filter(domain => domain) // Remove empty strings
+          .slice(0, 20) // Limit to 20 domains as per API
+      };
     }
 
     tools.push(webSearchTool);

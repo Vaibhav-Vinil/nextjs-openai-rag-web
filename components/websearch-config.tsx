@@ -1,12 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useToolsStore from "@/stores/useToolsStore";
 import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { X, Plus } from "lucide-react";
 import CountrySelector from "./country-selector";
 
 export default function WebSearchSettings() {
   const { webSearchConfig, setWebSearchConfig } = useToolsStore();
+
+  const [newDomain, setNewDomain] = useState("");
 
   const handleClear = () => {
     setWebSearchConfig({
@@ -16,7 +20,46 @@ export default function WebSearchSettings() {
         region: "",
         city: "",
       },
+      filters: {
+        allowed_domains: []
+      }
     });
+  };
+
+  const handleAddDomain = () => {
+    if (!newDomain.trim()) return;
+    
+    const domain = newDomain.trim().replace(/^https?:\/\//, '').split('/')[0];
+    const currentDomains = webSearchConfig.filters?.allowed_domains || [];
+    
+    if (!currentDomains.includes(domain)) {
+      setWebSearchConfig({
+        ...webSearchConfig,
+        filters: {
+          ...webSearchConfig.filters,
+          allowed_domains: [...currentDomains, domain].slice(0, 20)
+        }
+      });
+      setNewDomain("");
+    }
+  };
+
+  const handleRemoveDomain = (domainToRemove: string) => {
+    const currentDomains = webSearchConfig.filters?.allowed_domains || [];
+    setWebSearchConfig({
+      ...webSearchConfig,
+      filters: {
+        ...webSearchConfig.filters,
+        allowed_domains: currentDomains.filter(domain => domain !== domainToRemove)
+      }
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddDomain();
+    }
   };
 
   const handleLocationChange = (
@@ -81,6 +124,59 @@ export default function WebSearchSettings() {
             value={webSearchConfig.user_location?.city ?? ""}
             onChange={(e) => handleLocationChange("city", e.target.value)}
           />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-zinc-600 text-sm">Allowed Domains</div>
+          <div className="text-xs text-zinc-400">
+            {webSearchConfig.filters?.allowed_domains?.length || 0}/20 domains
+          </div>
+        </div>
+        
+        <div className="flex gap-2 mb-2">
+          <Input
+            type="text"
+            placeholder="example.com"
+            className="flex-1 text-sm"
+            value={newDomain}
+            onChange={(e) => setNewDomain(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={handleAddDomain}
+            disabled={!newDomain.trim() || (webSearchConfig.filters?.allowed_domains?.length || 0) >= 20}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="space-y-1 max-h-40 overflow-y-auto">
+          {webSearchConfig.filters?.allowed_domains?.map((domain) => (
+            <div 
+              key={domain} 
+              className="flex items-center justify-between bg-zinc-50 px-3 py-2 rounded text-sm"
+            >
+              <span className="text-zinc-800">{domain}</span>
+              <button 
+                onClick={() => handleRemoveDomain(domain)}
+                className="text-zinc-400 hover:text-zinc-600 transition-colors"
+                aria-label={`Remove ${domain}`}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          
+          {(!webSearchConfig.filters?.allowed_domains?.length) && (
+            <div className="text-center text-sm text-zinc-400 py-2">
+              No domains added. Web search will use all domains.
+            </div>
+          )}
         </div>
       </div>
     </div>

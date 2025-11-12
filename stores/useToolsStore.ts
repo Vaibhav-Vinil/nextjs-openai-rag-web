@@ -21,6 +21,9 @@ export type WebSearchConfig = {
     city?: string;
     region?: string;
   };
+  filters?: {
+    allowed_domains?: string[];
+  };
 };
 
 export type McpConfig = {
