@@ -1,9 +1,21 @@
 import { getDeveloperPrompt, MODEL } from "@/config/constants";
 import { getTools } from "@/lib/tools/tools";
 import OpenAI from "openai";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
+    // Check authentication
+    const supabase = await createClient();
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    
+    if (authError || !session) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401 }
+      );
+    }
+
     const { messages, toolsState } = await request.json();
 
     const tools = await getTools(toolsState);
