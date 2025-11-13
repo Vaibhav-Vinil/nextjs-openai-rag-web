@@ -10,14 +10,18 @@ interface ConversationState {
   conversationItems: any[];
   // Whether we are waiting for the assistant response
   isAssistantLoading: boolean;
+  // Current conversation ID (null for new conversations)
+  currentConversationId: string | null;
 
   setChatMessages: (items: Item[]) => void;
   setConversationItems: (messages: any[]) => void;
   addChatMessage: (item: Item) => void;
   addConversationItem: (message: ChatCompletionMessageParam) => void;
   setAssistantLoading: (loading: boolean) => void;
+  setCurrentConversationId: (id: string | null) => void;
   rawSet: (state: any) => void;
   resetConversation: () => void;
+  loadConversation: (conversationItems: any[], chatMessages: Item[], id: string) => void;
 }
 
 const useConversationStore = create<ConversationState>((set) => ({
@@ -30,6 +34,7 @@ const useConversationStore = create<ConversationState>((set) => ({
   ],
   conversationItems: [],
   isAssistantLoading: false,
+  currentConversationId: null,
   setChatMessages: (items) => set({ chatMessages: items }),
   setConversationItems: (messages) => set({ conversationItems: messages }),
   addChatMessage: (item) =>
@@ -39,6 +44,7 @@ const useConversationStore = create<ConversationState>((set) => ({
       conversationItems: [...state.conversationItems, message],
     })),
   setAssistantLoading: (loading) => set({ isAssistantLoading: loading }),
+  setCurrentConversationId: (id) => set({ currentConversationId: id }),
   rawSet: set,
   resetConversation: () =>
     set(() => ({
@@ -50,6 +56,13 @@ const useConversationStore = create<ConversationState>((set) => ({
         },
       ],
       conversationItems: [],
+      currentConversationId: null,
+    })),
+  loadConversation: (conversationItems, chatMessages, id) =>
+    set(() => ({
+      conversationItems,
+      chatMessages,
+      currentConversationId: id,
     })),
 }));
 

@@ -1,6 +1,7 @@
 "use client";
 import Assistant from "@/components/assistant";
 import ToolsPanel from "@/components/tools-panel";
+import ConversationHistory from "@/components/conversation-history";
 import { Menu, X, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -83,24 +84,33 @@ export default function Main() {
   }
 
   return (
-    <div className="flex justify-center h-screen">
-      <div className="w-full md:w-[70%]">
-        <div className="absolute top-4 left-4 flex items-center gap-4">
-          <span className="text-sm text-gray-600">Welcome, {userEmail}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLogout}
-            className="flex items-center gap-2"
-          >
-            <LogOut size={16} />
-            Logout
-          </Button>
-        </div>
-        <Assistant />
+    <div className="flex h-screen">
+      {/* Conversation History Sidebar */}
+      <div className="hidden lg:block w-64 border-r bg-gray-50">
+        <ConversationHistory />
       </div>
-      <div className=" hidden md:block w-[30%]">
-        <ToolsPanel />
+      
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex">
+          <div className="flex-1 relative">
+            <div className="absolute top-4 left-4 flex items-center gap-4 z-10">
+              <span className="text-sm text-gray-600">Welcome, {userEmail}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut size={16} />
+                Logout
+              </Button>
+            </div>
+            <Assistant />
+          </div>
+          <div className="hidden md:block w-[30%] border-l">
+            <ToolsPanel />
+          </div>
+        </div>
       </div>
       {/* Hamburger menu for small screens */}
       <div className="absolute top-4 right-4 md:hidden">

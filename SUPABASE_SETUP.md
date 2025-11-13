@@ -45,13 +45,35 @@ Replace `your_supabase_project_url` and `your_supabase_anon_key` with the values
    - Add your site URL (e.g., `http://localhost:3000` for development)
    - Add redirect URL: `http://localhost:3000/auth/callback`
 
-## 5. Database Schema (Automatic)
+## 5. Database Schema Setup
+
+### Authentication Tables (Automatic)
 
 Supabase automatically creates the necessary tables for authentication. The `auth.users` table is managed by Supabase and stores:
 - User email
 - Encrypted passwords
 - Email verification status
 - User metadata
+
+### Conversations Table (Manual Setup)
+
+You need to create the conversations table for chat history storage:
+
+1. Go to your Supabase project dashboard
+2. Navigate to **SQL Editor**
+3. Click **New Query**
+4. Copy and paste the contents of `supabase/migrations/001_create_conversations.sql`
+5. Click **Run** to execute the migration
+
+This will create:
+- `conversations` table with proper indexes
+- Row Level Security (RLS) policies
+- Automatic timestamp updates
+
+Alternatively, you can use the Supabase CLI:
+```bash
+supabase db push
+```
 
 ## 6. Test the Setup
 
