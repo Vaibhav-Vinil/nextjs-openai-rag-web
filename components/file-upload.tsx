@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, useState, FormEvent } from "react";
+import React, { useCallback, useState, FormEvent, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,13 +28,20 @@ interface FileUploadProps {
 
 export default function FileUpload({
   vectorStoreId,
+  vectorStoreName,
   onAddStore,
   onUnlinkStore,
 }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [newStoreName, setNewStoreName] = useState<string>("Default store");
+  const [newStoreName, setNewStoreName] = useState<string>(
+    vectorStoreName || "Shared store"
+  );
   const [uploading, setUploading] = useState<boolean>(false);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    setNewStoreName(vectorStoreName || "Shared store");
+  }, [vectorStoreName]);
 
   const acceptedFileTypes = {
     "text/x-c": [".c"],
@@ -123,10 +130,11 @@ export default function FileUpload({
       }
       console.log("Uploaded file:", uploadData);
 
-      let finalVectorStoreId = vectorStoreId;
+      let finalVectorStoreId = vectorStoreId || "";
+      let finalVectorStoreName = vectorStoreName || newStoreName;
 
       // 2. If no vector store is linked, create one
-      if (!vectorStoreId || vectorStoreId === "") {
+      if (!finalVectorStoreId) {
         const createResponse = await fetch("/api/vector_stores/create_store", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -139,13 +147,42 @@ export default function FileUpload({
         }
         const createData = await createResponse.json();
         finalVectorStoreId = createData.id;
+        finalVectorStoreName = createData.name || newStoreName;
       }
 
       if (!finalVectorStoreId) {
         throw new Error("Error getting vector store ID");
       }
 
+      // Refresh store details to capture latest metadata
+      try {
+        const detailsResponse = await fetch(
+          `/api/vector_stores/retrieve_store?vector_store_id=${finalVectorStoreId}`
+        );
+        if (detailsResponse.ok) {
+          const details = await detailsResponse.json();
+          if (details?.id) {
+            finalVectorStoreName = details.name || finalVectorStoreName;
+          }
+        }
+      } catch (error) {
+        console.warn("Unable to retrieve vector store details:", error);
+      }
+
       onAddStore(finalVectorStoreId);
+
+      try {
+        await fetch("/api/vector_stores/shared", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            store_id: finalVectorStoreId,
+            store_name: finalVectorStoreName,
+          }),
+        });
+      } catch (error) {
+        console.error("Error updating shared vector store:", error);
+      }
 
       // 3. Add file to vector store
       const addFileResponse = await fetch("/api/vector_stores/add_file", {
@@ -161,6 +198,7 @@ export default function FileUpload({
       }
       const addFileData = await addFileResponse.json();
       console.log("Added file to vector store:", addFileData);
+      setNewStoreName(finalVectorStoreName);
       setFile(null);
       setDialogOpen(false);
     } catch (error) {
@@ -185,12 +223,12 @@ export default function FileUpload({
             <DialogTitle>Add files to your vector store</DialogTitle>
           </DialogHeader>
           <div className="my-6">
-            {!vectorStoreId || vectorStoreId === "" ? (
+            {!vectorStoreId ? (
               <div className="flex items-start gap-2 text-sm">
                 <label className="font-medium w-72" htmlFor="storeName">
                   New vector store name
                   <div className="text-xs text-zinc-400">
-                    A new store will be created when you upload a file.
+                    A new shared store will be created when you upload a file.
                   </div>
                 </label>
                 <Input

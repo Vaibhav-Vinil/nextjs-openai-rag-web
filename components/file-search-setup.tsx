@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import useToolsStore from "@/stores/useToolsStore";
 import FileUpload from "@/components/file-upload";
 import { Input } from "./ui/input";
@@ -9,14 +9,67 @@ import { Tooltip } from "./ui/tooltip";
 import { TooltipProvider } from "./ui/tooltip";
 
 export default function FileSearchSetup() {
-  const { vectorStore, setVectorStore } = useToolsStore();
+  const { vectorStore, setVectorStore, setFileSearchEnabled } = useToolsStore();
   const [newStoreId, setNewStoreId] = useState<string>("");
 
+  const syncSharedStore = useCallback(async () => {
+    try {
+      const response = await fetch("/api/vector_stores/shared", {
+        method: "GET",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch shared vector store");
+      }
+      const data = await response.json();
+      const sharedStore = data.store;
+
+      if (sharedStore?.store_id) {
+        if (vectorStore?.id !== sharedStore.store_id) {
+          setVectorStore({
+            id: sharedStore.store_id,
+            name: sharedStore.store_name || "",
+          });
+        }
+        setFileSearchEnabled(true);
+        setNewStoreId(sharedStore.store_id);
+      } else {
+        if (vectorStore?.id) {
+          setVectorStore({
+            id: "",
+            name: "",
+          });
+        }
+        setFileSearchEnabled(false);
+        setNewStoreId("");
+      }
+    } catch (error) {
+      console.error("Error syncing shared vector store:", error);
+    }
+  }, [setVectorStore, setFileSearchEnabled, vectorStore?.id]);
+
+  useEffect(() => {
+    syncSharedStore();
+    const interval = setInterval(syncSharedStore, 15000);
+    return () => clearInterval(interval);
+  }, [syncSharedStore]);
+
   const unlinkStore = async () => {
-    setVectorStore({
-      id: "",
-      name: "",
-    });
+    try {
+      await fetch("/api/vector_stores/shared", {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error("Error unlinking shared vector store:", error);
+    } finally {
+      setVectorStore({
+        id: "",
+        name: "",
+      });
+      setFileSearchEnabled(false);
+      setNewStoreId("");
+    }
+    await syncSharedStore();
   };
 
   const handleAddStore = async (storeId: string) => {
@@ -27,10 +80,25 @@ export default function FileSearchSetup() {
       if (newStore.id) {
         console.log("Retrieved store:", newStore);
         setVectorStore(newStore);
+        setFileSearchEnabled(true);
+        setNewStoreId("");
+        try {
+          await fetch("/api/vector_stores/shared", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              store_id: newStore.id,
+              store_name: newStore.name ?? "",
+            }),
+          });
+        } catch (error) {
+          console.error("Error updating shared vector store:", error);
+        }
       } else {
         alert("Vector store not found");
       }
     }
+    await syncSharedStore();
   };
 
   return (

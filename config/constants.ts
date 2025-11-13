@@ -33,5 +33,5 @@ Hi, how can I help you?
 
 export const defaultVectorStore = {
   id: "",
-  name: "Example",
+  name: "",
 };
