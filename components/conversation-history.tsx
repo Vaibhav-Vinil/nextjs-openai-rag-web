@@ -1,12 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, MessageSquare, LogOut } from "lucide-react";
 import { Conversation, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
 import { format } from "date-fns";
 
-export default function ConversationHistory() {
+interface ConversationHistoryProps {
+  userEmail?: string;
+  onLogout?: () => void;
+}
+
+export default function ConversationHistory({ userEmail, onLogout }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentConversationId, resetConversation, loadConversation: loadConv, setCurrentConversationId } = useConversationStore();
@@ -50,7 +55,26 @@ export default function ConversationHistory() {
 
   return (
     <div className="h-full flex flex-col bg-gray-50 border-r">
-      <div className="p-4 border-b">
+      {/* User info and logout */}
+      <div className="p-4 border-b bg-white">
+        {userEmail && (
+          <div className="mb-3">
+            <p className="text-sm text-gray-600 mb-2 truncate" title={userEmail}>
+              Welcome, {userEmail}
+            </p>
+            {onLogout && (
+              <Button
+                onClick={onLogout}
+                variant="outline"
+                size="sm"
+                className="w-full flex items-center gap-2"
+              >
+                <LogOut size={14} />
+                Logout
+              </Button>
+            )}
+          </div>
+        )}
         <Button
           onClick={handleNewConversation}
           className="w-full flex items-center gap-2"
