@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import useToolsStore from "@/stores/useToolsStore";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -12,47 +12,110 @@ export default function WebSearchSettings() {
 
   const [newDomain, setNewDomain] = useState("");
 
-  const handleClear = () => {
-    setWebSearchConfig({
-      user_location: {
-        type: "approximate",
-        country: "",
-        region: "",
-        city: "",
-      },
-      filters: {
-        allowed_domains: []
+  // Sync domains with the server
+  const syncDomains = async () => {
+    try {
+      const response = await fetch('/api/domains/shared');
+      if (response.ok) {
+        const { domains } = await response.json();
+        setWebSearchConfig({
+          ...webSearchConfig,
+          filters: {
+            ...webSearchConfig.filters,
+            allowed_domains: domains || []
+          }
+        });
       }
-    });
+    } catch (error) {
+      console.error("Error syncing domains:", error);
+    }
   };
 
-  const handleAddDomain = () => {
+  useEffect(() => {
+    syncDomains();
+    const interval = setInterval(syncDomains, 10000); // Sync every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleClear = async () => {
+    try {
+      await fetch('/api/domains/shared', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domains: [] })
+      });
+      
+      setWebSearchConfig({
+        user_location: {
+          type: "approximate",
+          country: "",
+          region: "",
+          city: "",
+        },
+        filters: {
+          allowed_domains: []
+        }
+      });
+    } catch (error) {
+      console.error("Error clearing domains:", error);
+    }
+  };
+
+  const handleAddDomain = async () => {
     if (!newDomain.trim()) return;
     
     const domain = newDomain.trim().replace(/^https?:\/\//, '').split('/')[0];
     const currentDomains = webSearchConfig.filters?.allowed_domains || [];
     
     if (!currentDomains.includes(domain)) {
-      setWebSearchConfig({
-        ...webSearchConfig,
-        filters: {
-          ...webSearchConfig.filters,
-          allowed_domains: [...currentDomains, domain].slice(0, 20)
+      const updatedDomains = [...currentDomains, domain].slice(0, 20);
+      
+      try {
+        const response = await fetch('/api/domains/shared', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domains: updatedDomains })
+        });
+        
+        if (response.ok) {
+          setWebSearchConfig({
+            ...webSearchConfig,
+            filters: {
+              ...webSearchConfig.filters,
+              allowed_domains: updatedDomains
+            }
+          });
+          setNewDomain("");
         }
-      });
-      setNewDomain("");
+      } catch (error) {
+        console.error("Error adding domain:", error);
+      }
     }
   };
 
-  const handleRemoveDomain = (domainToRemove: string) => {
+  const handleRemoveDomain = async (domainToRemove: string) => {
     const currentDomains = webSearchConfig.filters?.allowed_domains || [];
-    setWebSearchConfig({
-      ...webSearchConfig,
-      filters: {
-        ...webSearchConfig.filters,
-        allowed_domains: currentDomains.filter(domain => domain !== domainToRemove)
+    const updatedDomains = currentDomains.filter(domain => domain !== domainToRemove);
+    
+    try {
+      const response = await fetch('/api/domains/shared', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domains: updatedDomains })
+      });
+      
+      if (response.ok) {
+        setWebSearchConfig({
+          ...webSearchConfig,
+          filters: {
+            ...webSearchConfig.filters,
+            allowed_domains: updatedDomains
+          }
+        });
       }
-    });
+    } catch (error) {
+      console.error("Error removing domain:", error);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

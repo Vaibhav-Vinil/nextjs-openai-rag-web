@@ -70,9 +70,6 @@ export default function QueryLimitDisplay({ userId }: { userId: string }) {
     );
   }
 
-  // Calculate the percentage of remaining queries
-  const percentage = Math.max(0, Math.min(100, (remainingQueries / 5) * 100));
-  
   // Determine the color based on remaining queries
   const getProgressBarColor = () => {
     if (remainingQueries <= 1) return 'bg-red-500';
@@ -82,14 +79,13 @@ export default function QueryLimitDisplay({ userId }: { userId: string }) {
 
   return (
     <div className="w-full px-2 mb-3">
-      <div className="flex justify-between text-xs text-gray-600 mb-1">
-        <span>Remaining queries: <span className="font-semibold">{remainingQueries}/5</span></span>
-        <span>{Math.round(percentage)}%</span>
+      <div className="text-xs text-gray-600 mb-1">
+        Remaining queries: <span className="font-semibold">{remainingQueries}/5</span>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
         <div 
           className={`h-full rounded-full ${getProgressBarColor()} transition-all duration-1000 ease-out`}
-          style={{ width: `${percentage}%` }}
+          style={{ width: `${(remainingQueries / 5) * 100}%` }}
         />
       </div>
     </div>
