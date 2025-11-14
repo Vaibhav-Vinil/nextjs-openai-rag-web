@@ -37,15 +37,20 @@ export const getTools = async (toolsState: ToolsState) => {
       webSearchTool.user_location = webSearchConfig.user_location;
     }
 
-    // Add domain filters if provided
-    if (webSearchConfig.filters?.allowed_domains?.length) {
-      webSearchTool.filters = {
-        allowed_domains: webSearchConfig.filters.allowed_domains
-          .map(domain => domain.trim())
-          .filter(domain => domain) // Remove empty strings
-          .slice(0, 20) // Limit to 20 domains as per API
-      };
-    }
+    // Initialize filters if not exists
+    webSearchTool.filters = webSearchTool.filters || {};
+    
+    // Use domains from webSearchConfig if provided
+    let allowedDomains = [
+      ...(webSearchConfig.filters?.allowed_domains || [])
+    ];
+    
+    // Process and deduplicate domains
+    webSearchTool.filters.allowed_domains = Array.from(new Set(
+      allowedDomains
+        .map(domain => domain.trim().replace(/^https?:\/\//, '').split('/')[0]) // Remove protocol and path
+        .filter(domain => domain && !domain.startsWith('http')) // Filter out invalid domains
+    )).slice(0, 20); // Limit to 20 domains as per API
 
     tools.push(webSearchTool);
   }

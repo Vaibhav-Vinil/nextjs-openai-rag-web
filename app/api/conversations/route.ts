@@ -5,9 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -17,7 +17,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("conversations")
       .select("id, title, created_at, updated_at")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -42,9 +42,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from("conversations")
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         title: conversationTitle || "New Conversation",
         conversation_items: conversation_items,
         chat_messages: chat_messages,
