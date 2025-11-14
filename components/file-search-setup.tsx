@@ -31,7 +31,6 @@ export default function FileSearchSetup() {
             name: sharedStore.store_name || "",
           });
         }
-        setFileSearchEnabled(true);
         setNewStoreId(sharedStore.store_id);
       } else {
         if (vectorStore?.id) {
@@ -40,7 +39,6 @@ export default function FileSearchSetup() {
             name: "",
           });
         }
-        setFileSearchEnabled(false);
         setNewStoreId("");
       }
     } catch (error) {
@@ -80,7 +78,6 @@ export default function FileSearchSetup() {
       if (newStore.id) {
         console.log("Retrieved store:", newStore);
         setVectorStore(newStore);
-        setFileSearchEnabled(true);
         setNewStoreId("");
         try {
           await fetch("/api/vector_stores/shared", {

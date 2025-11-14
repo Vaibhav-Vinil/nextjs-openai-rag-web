@@ -47,6 +47,15 @@ const Message: React.FC<MessageProps> = ({ message }) => {
                       tr: ({ node, ...props }) => (
                         <tr className="hover:bg-gray-50" {...props} />
                       ),
+                      img: ({ node, ...props }) => (
+                        <a href={props.src} target="_blank" rel="noopener noreferrer" className="block">
+                          <img 
+                            {...props} 
+                            className="mt-2 max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                            alt={props.alt || 'Image from web search'}
+                          />
+                        </a>
+                      ),
                     }}
                   >
                     {message.content[0].text as string}
