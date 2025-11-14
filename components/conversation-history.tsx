@@ -2,16 +2,18 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, MessageSquare, LogOut } from "lucide-react";
+import QueryLimitDisplay from "./query-limit-display";
 import { Conversation, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
 import { format } from "date-fns";
 
 interface ConversationHistoryProps {
   userEmail?: string;
+  userId?: string;
   onLogout?: () => void;
 }
 
-export default function ConversationHistory({ userEmail, onLogout }: ConversationHistoryProps) {
+export default function ConversationHistory({ userEmail, userId, onLogout }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentConversationId, resetConversation, loadConversation: loadConv, setCurrentConversationId } = useConversationStore();
@@ -59,9 +61,10 @@ export default function ConversationHistory({ userEmail, onLogout }: Conversatio
       <div className="p-4 border-b bg-white">
         {userEmail && (
           <div className="mb-3">
-            <p className="text-sm text-gray-600 mb-2 truncate" title={userEmail}>
+            <p className="text-sm text-gray-600 mb-1 truncate" title={userEmail}>
               Welcome, {userEmail}
             </p>
+            {userId && <QueryLimitDisplay userId={userId} />}
             {onLogout && (
               <Button
                 onClick={onLogout}

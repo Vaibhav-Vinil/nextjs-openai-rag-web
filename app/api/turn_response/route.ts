@@ -1,5 +1,6 @@
 import { getDeveloperPrompt, MODEL } from "@/config/constants";
 import { getTools } from "@/lib/tools/tools";
+import { checkQueryLimit, recordQuery } from "@/lib/utils/queryLimiter";
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,14 +18,40 @@ export async function POST(request: Request) {
     }
 
     const { messages, toolsState } = await request.json();
+    const userId = session.user.id;
+
+    // Check query limit
+    const { allowed, remaining } = await checkQueryLimit(userId);
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Daily query limit reached",
+          message: `You've reached your daily limit of 5 queries. Please try again tomorrow.`,
+          limitReached: true
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Record this query and get the result
+    const recordResult = await recordQuery(userId, 'assistant_query');
+    
+    if (!recordResult.success) {
+      console.error('Failed to record query:', recordResult.error);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to record query',
+          message: 'Your query was processed but could not be recorded.',
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     const tools = await getTools(toolsState);
+    const openai = new OpenAI();
 
     console.log("Tools:", tools);
-
     console.log("Received messages:", messages);
-
-    const openai = new OpenAI();
 
     const events = await openai.responses.create({
       model: MODEL,

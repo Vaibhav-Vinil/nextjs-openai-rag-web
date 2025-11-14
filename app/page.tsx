@@ -11,9 +11,11 @@ import { createClient } from "@/lib/supabase/client";
 
 function CollapsibleConversationSidebar({
   userEmail,
+  userId,
   onLogout,
 }: {
   userEmail: string;
+  userId: string;
   onLogout: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,7 +30,7 @@ function CollapsibleConversationSidebar({
     <div className="hidden md:flex relative">
       {isOpen && (
         <div className="w-64 h-full overflow-y-auto bg-white border-r border-gray-200">
-          <ConversationHistory userEmail={userEmail} onLogout={onLogout} />
+          <ConversationHistory userEmail={userEmail} userId={userId} onLogout={onLogout} />
         </div>
       )}
       <button
@@ -72,6 +74,7 @@ export default function Main() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
   const router = useRouter();
   const { resetConversation } = useConversationStore();
   const supabase = createClient();
@@ -98,8 +101,10 @@ export default function Main() {
       if (session) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
+        setUserId(session.user.id);
       } else {
         setIsAuthenticated(false);
+        setUserId("");
         router.push("/login");
       }
     });
@@ -195,7 +200,7 @@ export default function Main() {
       )}
 
       {/* Conversation History Sidebar */}
-      <CollapsibleConversationSidebar userEmail={userEmail} onLogout={handleLogout} />
+      <CollapsibleConversationSidebar userEmail={userEmail} userId={userId} onLogout={handleLogout} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex min-h-0">

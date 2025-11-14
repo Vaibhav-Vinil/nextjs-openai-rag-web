@@ -90,8 +90,25 @@ export const handleTurn = async (
     });
 
     if (!response.ok) {
-      console.error(`Error: ${response.status} - ${response.statusText}`);
+      if (response.status === 429) {
+        // Handle query limit exceeded
+        const errorData = await response.json().catch(() => ({}));
+        onMessage({
+          event: "error",
+          data: {
+            type: "query_limit_exceeded",
+            message: errorData.message || "You've reached your daily query limit. Please try again tomorrow."
+          }
+        });
+      } else {
+        console.error(`Error: ${response.status} - ${response.statusText}`);
+      }
       return;
+    }
+    
+    // Trigger query limit update when we get a successful response
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('queryResponseReceived'));
     }
 
     // Reader for streaming data
@@ -158,6 +175,22 @@ export const processMessages = async () => {
     toolsState,
     async ({ event, data }) => {
       switch (event) {
+        case "error": {
+          if (data.type === "query_limit_exceeded") {
+            // Add error message to chat
+            chatMessages.push({
+              type: "message",
+              role: "assistant",
+              content: [{
+                type: "output_text",
+                text: data.message || "You've reached your daily query limit. Please try again tomorrow."
+              }]
+            });
+            setChatMessages([...chatMessages]);
+          }
+          setAssistantLoading(false);
+          break;
+        }
         case "response.output_text.delta":
         case "response.output_text.annotation.added": {
           const { delta, item_id, annotation } = data;
