@@ -50,8 +50,6 @@ export default function FileSearchSetup() {
 
   useEffect(() => {
     syncSharedStore();
-    const interval = setInterval(syncSharedStore, 15000);
-    return () => clearInterval(interval);
   }, [syncSharedStore]);
 
   const unlinkStore = async () => {
