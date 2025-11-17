@@ -116,6 +116,15 @@ const useToolsStore = create<StoreState>()(
     }),
     {
       name: "tools-store",
+      partialize: (state) => ({
+        vectorStore: state.vectorStore,
+        webSearchConfig: state.webSearchConfig,
+        mcpConfig: state.mcpConfig,
+        fileSearchEnabled: state.fileSearchEnabled,
+        functionsEnabled: state.functionsEnabled,
+        googleIntegrationEnabled: state.googleIntegrationEnabled,
+        mcpEnabled: state.mcpEnabled,
+      }),
     }
   )
 );
