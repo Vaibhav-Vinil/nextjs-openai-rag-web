@@ -1,13 +1,13 @@
 "use client";
 import Assistant from "@/components/assistant";
-import ToolsPanel from "@/components/tools-panel";
 import ConversationHistory from "@/components/conversation-history";
-import { Menu, X, PanelsTopLeft } from "lucide-react";
+import ConfigLoader from "@/components/config-loader";
+import { PanelsTopLeft, X, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useConversationStore from "@/stores/useConversationStore";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { isAdmin } from "@/config/admin-emails";
 
 function CollapsibleConversationSidebar({
   userEmail,
@@ -46,31 +46,8 @@ function CollapsibleConversationSidebar({
   );
 }
 
-function CollapsibleToolsPanel() {
-  const [isOpen, setIsOpen] = useState(true);
-
-  return (
-    <div className="hidden md:flex relative">
-      {isOpen && (
-        <div className="w-[360px] border-l border-gray-200 bg-[#f9f9f9] h-full overflow-y-auto">
-          <ToolsPanel />
-        </div>
-      )}
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`fixed top-4 right-4 rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors ${
-          isOpen ? 'right-[380px]' : 'right-4'
-        }`}
-        aria-label={isOpen ? "Hide tools panel" : "Show tools panel"}
-      >
-        <Menu size={20} />
-      </button>
-    </div>
-  );
-}
 
 export default function Main() {
-  const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
@@ -158,13 +135,15 @@ export default function Main() {
         >
           <PanelsTopLeft size={20} />
         </button>
-        <button
-          onClick={() => setIsToolsPanelOpen(true)}
-          className="rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors"
-          aria-label="Open tools"
-        >
-          <Menu size={20} />
-        </button>
+        {isAdmin(userEmail) && (
+          <button
+            onClick={() => router.push("/admin")}
+            className="rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors"
+            aria-label="Admin panel"
+          >
+            <Settings size={20} />
+          </button>
+        )}
       </div>
 
       {/* Mobile conversation history */}
@@ -205,25 +184,12 @@ export default function Main() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex min-h-0">
           <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8">
-            <Assistant />
+            <ConfigLoader>
+              <Assistant />
+            </ConfigLoader>
           </div>
-          <CollapsibleToolsPanel />
         </div>
       </div>
-      {/* Hamburger menu for small screens */}
-      {/* Overlay panel for ToolsPanel on small screens */}
-      {isToolsPanelOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black bg-opacity-30">
-          <div className="w-full max-w-sm bg-white h-full p-4 shadow-2xl">
-            <button className="mb-4 rounded-full p-2 hover:bg-gray-100" onClick={() => setIsToolsPanelOpen(false)}>
-              <X size={24} />
-            </button>
-            <div className="h-full overflow-y-auto">
-              <ToolsPanel />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

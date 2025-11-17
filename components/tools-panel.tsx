@@ -8,7 +8,7 @@ import PanelConfig from "./panel-config";
 import useToolsStore from "@/stores/useToolsStore";
 import GoogleIntegrationPanel from "@/components/google-integration";
 
-export default function ContextPanel() {
+export default function ToolsPanel() {
   const {
     fileSearchEnabled,
     setFileSearchEnabled,
@@ -22,8 +22,120 @@ export default function ContextPanel() {
     setMcpEnabled,
     codeInterpreterEnabled,
     setCodeInterpreterEnabled,
+    webSearchConfig,
+    setWebSearchConfig,
+    mcpConfig,
+    setMcpConfig,
+    vectorStore,
+    setVectorStore,
   } = useToolsStore();
   const [oauthConfigured, setOauthConfigured] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  // Load configuration from admin API on mount
+  React.useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch("/api/admin/config");
+        if (response.ok) {
+          const config = await response.json();
+          
+          // Apply configuration to store
+          if (config.web_search_enabled !== undefined) {
+            setWebSearchEnabled(config.web_search_enabled);
+          }
+          if (config.file_search_enabled !== undefined) {
+            setFileSearchEnabled(config.file_search_enabled);
+          }
+          if (config.functions_enabled !== undefined) {
+            setFunctionsEnabled(config.functions_enabled);
+          }
+          if (config.code_interpreter_enabled !== undefined) {
+            setCodeInterpreterEnabled(config.code_interpreter_enabled);
+          }
+          if (config.mcp_enabled !== undefined) {
+            setMcpEnabled(config.mcp_enabled);
+          }
+          if (config.google_integration_enabled !== undefined) {
+            setGoogleIntegrationEnabled(config.google_integration_enabled);
+          }
+          if (config.web_search_config) {
+            setWebSearchConfig(config.web_search_config);
+          }
+          if (config.mcp_config) {
+            setMcpConfig(config.mcp_config);
+          }
+          if (config.vector_store) {
+            setVectorStore(config.vector_store);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load admin configuration:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadConfig();
+  }, [
+    setWebSearchEnabled,
+    setFileSearchEnabled,
+    setFunctionsEnabled,
+    setCodeInterpreterEnabled,
+    setMcpEnabled,
+    setGoogleIntegrationEnabled,
+    setWebSearchConfig,
+    setMcpConfig,
+    setVectorStore,
+  ]);
+
+  // Save configuration to admin API whenever any tool setting changes
+  const saveConfig = React.useCallback(async () => {
+    const config = {
+      web_search_enabled: webSearchEnabled,
+      file_search_enabled: fileSearchEnabled,
+      functions_enabled: functionsEnabled,
+      code_interpreter_enabled: codeInterpreterEnabled,
+      mcp_enabled: mcpEnabled,
+      google_integration_enabled: googleIntegrationEnabled,
+      web_search_config: webSearchConfig,
+      mcp_config: mcpConfig,
+      vector_store: vectorStore,
+    };
+
+    try {
+      const response = await fetch("/api/admin/config", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ configurations: config }),
+      });
+      
+      if (!response.ok) {
+        console.error("Failed to save admin configuration");
+      }
+    } catch (error) {
+      console.error("Failed to save admin configuration:", error);
+    }
+  }, [
+    webSearchEnabled,
+    fileSearchEnabled,
+    functionsEnabled,
+    codeInterpreterEnabled,
+    mcpEnabled,
+    googleIntegrationEnabled,
+    webSearchConfig,
+    mcpConfig,
+    vectorStore,
+  ]);
+
+  // Save config whenever relevant state changes
+  React.useEffect(() => {
+    if (!isLoading) {
+      saveConfig();
+    }
+  }, [isLoading, saveConfig]);
 
   React.useEffect(() => {
     fetch("/api/google/status")
@@ -31,6 +143,15 @@ export default function ContextPanel() {
       .then((d) => setOauthConfigured(Boolean(d.oauthConfigured)))
       .catch(() => setOauthConfigured(false));
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="h-full p-8 w-full bg-[#f9f9f9] rounded-t-xl md:rounded-none border-l-1 border-stone-100 flex items-center justify-center">
+        <div className="text-gray-600">Loading configuration...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full p-8 w-full bg-[#f9f9f9] rounded-t-xl md:rounded-none border-l-1 border-stone-100">
       <div className="flex flex-col overflow-y-scroll h-full">
