@@ -24,14 +24,13 @@ export default function FileSearchSetup() {
       const data = await response.json();
       const sharedStore = data.store;
 
-      if (sharedStore?.store_id) {
-        if (vectorStore?.id !== sharedStore.store_id) {
+      if (sharedStore && sharedStore.store_id) {
+        if (!vectorStore?.id || vectorStore.id !== sharedStore.store_id) {
           setVectorStore({
             id: sharedStore.store_id,
             name: sharedStore.store_name || "",
           });
         }
-        setFileSearchEnabled(true);
         setNewStoreId(sharedStore.store_id);
       } else {
         if (vectorStore?.id) {
@@ -78,7 +77,6 @@ export default function FileSearchSetup() {
       if (newStore.id) {
         console.log("Retrieved store:", newStore);
         setVectorStore(newStore);
-        setFileSearchEnabled(true);
         setNewStoreId("");
         try {
           await fetch("/api/vector_stores/shared", {

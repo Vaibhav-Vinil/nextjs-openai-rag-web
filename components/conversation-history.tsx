@@ -16,7 +16,7 @@ interface ConversationHistoryProps {
 export default function ConversationHistory({ userEmail, userId, onLogout }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
-  const { currentConversationId, resetConversation, loadConversation: loadConv, setCurrentConversationId } = useConversationStore();
+  const { currentConversationId, resetConversation, loadConversation: loadConv, setCurrentConversationId, setConversationLoading } = useConversationStore();
 
   const fetchConversations = async () => {
     setLoading(true);
@@ -35,11 +35,13 @@ export default function ConversationHistory({ userEmail, userId, onLogout }: Con
   };
 
   const handleLoadConversation = async (id: string) => {
+    setConversationLoading(true);
     const data = await loadConversation(id);
     if (data) {
       loadConv(data.conversation_items, data.chat_messages, id);
       setCurrentConversationId(id);
     }
+    setConversationLoading(false);
   };
 
   const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {

@@ -10,6 +10,8 @@ interface ConversationState {
   conversationItems: any[];
   // Whether we are waiting for the assistant response
   isAssistantLoading: boolean;
+  // Whether we are loading a conversation (switching between chats)
+  isConversationLoading: boolean;
   // Current conversation ID (null for new conversations)
   currentConversationId: string | null;
 
@@ -18,6 +20,7 @@ interface ConversationState {
   addChatMessage: (item: Item) => void;
   addConversationItem: (message: ChatCompletionMessageParam) => void;
   setAssistantLoading: (loading: boolean) => void;
+  setConversationLoading: (loading: boolean) => void;
   setCurrentConversationId: (id: string | null) => void;
   rawSet: (state: any) => void;
   resetConversation: () => void;
@@ -34,6 +37,7 @@ const useConversationStore = create<ConversationState>((set) => ({
   ],
   conversationItems: [],
   isAssistantLoading: false,
+  isConversationLoading: false,
   currentConversationId: null,
   setChatMessages: (items) => set({ chatMessages: items }),
   setConversationItems: (messages) => set({ conversationItems: messages }),
@@ -44,6 +48,7 @@ const useConversationStore = create<ConversationState>((set) => ({
       conversationItems: [...state.conversationItems, message],
     })),
   setAssistantLoading: (loading) => set({ isAssistantLoading: loading }),
+  setConversationLoading: (loading) => set({ isConversationLoading: loading }),
   setCurrentConversationId: (id) => set({ currentConversationId: id }),
   rawSet: set,
   resetConversation: () =>

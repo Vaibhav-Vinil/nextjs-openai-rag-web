@@ -8,6 +8,7 @@ import McpToolsList from "./mcp-tools-list";
 import McpApproval from "./mcp-approval";
 import { Item, McpApprovalRequestItem } from "@/lib/assistant";
 import LoadingMessage from "./loading-message";
+import ConversationLoading from "./conversation-loading";
 import useConversationStore from "@/stores/useConversationStore";
 
 interface ChatProps {
@@ -26,7 +27,7 @@ const Chat: React.FC<ChatProps> = ({
   const [inputMessageText, setinputMessageText] = useState<string>("");
   // This state is used to provide better user experience for non-English IMEs such as Japanese
   const [isComposing, setIsComposing] = useState(false);
-  const { isAssistantLoading } = useConversationStore();
+  const { isAssistantLoading, isConversationLoading } = useConversationStore();
   const previousItemsLengthRef = useRef<number>(0);
   const isInitialMountRef = useRef<boolean>(true);
 
@@ -72,8 +73,9 @@ const Chat: React.FC<ChatProps> = ({
       <div className="flex grow flex-col h-full w-full max-w-3xl min-w-0">
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-10 py-6 flex flex-col min-h-0"
+          className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-10 py-6 flex flex-col min-h-0 relative"
         >
+          {isConversationLoading && <ConversationLoading />}
           <div className="flex-1 flex flex-col justify-end">
             <div className="space-y-5">
               {items.map((item, index) => (
