@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import ToolsPanel from "@/components/tools-panel";
+import AdminUtilities from "@/components/admin-utilities";
 import { isAdmin } from "@/config/admin-emails";
 import { Shield, ArrowLeft } from "lucide-react";
 
@@ -106,7 +107,21 @@ export default function AdminPage() {
 
       {/* Tools Panel - Full Width */}
       <div className="flex-1 pt-20">
-        <div className="max-w-4xl mx-auto p-6">
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
+          {/* Admin Utilities - Reset Credits */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-900">Admin Utilities</h1>
+              <p className="text-gray-600 mt-2">
+                Quick actions for admin operations
+              </p>
+            </div>
+            <div className="p-6">
+              <AdminUtilities />
+            </div>
+          </div>
+
+          {/* Tools Configuration */}
           <div className="bg-white rounded-lg shadow-lg border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h1 className="text-2xl font-bold text-gray-900">Admin Configuration</h1>
