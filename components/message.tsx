@@ -52,29 +52,7 @@ const Message: React.FC<MessageProps> = ({ message }) => {
                     {message.content[0].text as string}
                   </ReactMarkdown>
                 </div>
-                {message.content[0].annotations &&
-                  message.content[0].annotations
-                    .filter(
-                      (a) =>
-                        a.type === "container_file_citation" &&
-                        a.filename &&
-                        /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(a.filename)
-                    )
-                    .map((a, i) => (
-                      <a 
-                        href={`/api/container_files/content?file_id=${a.fileId}${a.containerId ? `&container_id=${a.containerId}` : ""}${a.filename ? `&filename=${encodeURIComponent(a.filename)}` : ""}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block"
-                      >
-                        <img
-                          key={i}
-                          src={`/api/container_files/content?file_id=${a.fileId}${a.containerId ? `&container_id=${a.containerId}` : ""}${a.filename ? `&filename=${encodeURIComponent(a.filename)}` : ""}`}
-                          alt={a.filename || ""}
-                          className="mt-2 max-w-full cursor-pointer hover:opacity-90 transition-opacity"
-                        />
-                      </a>
-                    ))}
+                {/* Image display has been disabled */}
               </div>
             </div>
           </div>

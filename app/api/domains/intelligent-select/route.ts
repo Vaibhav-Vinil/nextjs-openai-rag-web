@@ -3,7 +3,7 @@ import { selectDomainsForQuery } from "@/lib/domains/selector";
 
 export async function POST(request: Request) {
   try {
-    const { query, maxDomains = 7 } = await request.json();
+    const { query, maxDomains = 20 } = await request.json();
 
     if (!query || typeof query !== "string") {
       return NextResponse.json(

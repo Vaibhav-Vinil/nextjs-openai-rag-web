@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         try {
           const selection = await selectDomainsForQuery(
             latestUserQuery,
-            { max_domains: 7 },
+            { max_domains: 20 },
             supabase
           );
           if (selection.domains.length > 0) {
