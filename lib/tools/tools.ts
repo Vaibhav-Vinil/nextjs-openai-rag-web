@@ -7,7 +7,14 @@ interface WebSearchTool extends WebSearchConfig {
   type: "web_search";
 }
 
-export const getTools = async (toolsState: ToolsState) => {
+type GetToolsOptions = {
+  overrideAllowedDomains?: string[];
+};
+
+export const getTools = async (
+  toolsState: ToolsState,
+  options?: GetToolsOptions
+) => {
   const {
     webSearchEnabled,
     fileSearchEnabled,
@@ -40,10 +47,14 @@ export const getTools = async (toolsState: ToolsState) => {
     // Initialize filters if not exists
     webSearchTool.filters = webSearchTool.filters || {};
     
-    // Use domains from webSearchConfig if provided
-    let allowedDomains = [
-      ...(webSearchConfig.filters?.allowed_domains || [])
-    ];
+    const hasOverride =
+      options?.overrideAllowedDomains &&
+      options.overrideAllowedDomains.length > 0;
+
+    // Use dynamically selected domains if provided, otherwise fall back to config
+    const allowedDomains = hasOverride
+      ? [...(options?.overrideAllowedDomains || [])]
+      : [...(webSearchConfig.filters?.allowed_domains || [])];
     
     // Process and deduplicate domains
     webSearchTool.filters.allowed_domains = Array.from(new Set(
