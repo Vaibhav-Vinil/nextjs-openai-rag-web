@@ -224,11 +224,19 @@ export const processMessages = async () => {
             const contentItem = lastItem.content[0];
             if (contentItem && contentItem.type === "output_text") {
               contentItem.text = assistantMessageContent;
+              // Annotations are disabled to hide sources from users
+              // To re-enable, uncomment the lines below and comment out the current assignment
+              /*
               if (annotation) {
                 contentItem.annotations = [
                   ...(contentItem.annotations ?? []),
                   normalizeAnnotation(annotation),
                 ];
+              }
+              */
+              // Keep annotations empty to hide sources
+              if (contentItem.annotations) {
+                contentItem.annotations = [];
               }
             }
           }
@@ -249,8 +257,13 @@ export const processMessages = async () => {
           switch (item.type) {
             case "message": {
               const text = item.content?.text || "";
+              // Annotations are disabled to hide sources from users
+              // To re-enable, uncomment the lines below and comment out the empty annotations array
+              /*
               const annotations =
                 item.content?.annotations?.map(normalizeAnnotation) || [];
+              */
+              const annotations: Annotation[] = []; // Empty array to hide sources
               chatMessages.push({
                 type: "message",
                 role: "assistant",

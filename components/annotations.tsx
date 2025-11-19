@@ -49,6 +49,9 @@ const AnnotationPill = ({ annotation }: { annotation: Annotation }) => {
 };
 
 const Annotations = ({ annotations }: { annotations: Annotation[] }) => {
+  // Return null to hide all source annotations from the UI
+  // To re-enable source display, uncomment the code below and comment out the return null line
+  /*
   const uniqueAnnotations = annotations.reduce(
     (acc: Annotation[], annotation) => {
       if (
@@ -75,6 +78,8 @@ const Annotations = ({ annotations }: { annotations: Annotation[] }) => {
       ))}
     </div>
   );
+  */
+  return null;
 };
 
 export default Annotations;
