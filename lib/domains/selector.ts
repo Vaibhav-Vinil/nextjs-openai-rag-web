@@ -162,9 +162,10 @@ export const selectDomainsForQuery = async (
   const performSelect = async (columns: string) =>
     supabase.from("domains").select(columns).order("created_at", {
       ascending: false,
-    });
+    }) as any;
 
-  ({ data: domains, error: fetchError } = await performSelect(FULL_SELECT));
+  const result = await performSelect(FULL_SELECT);
+  ({ data: domains, error: fetchError } = result);
 
   if (fetchError && fetchError.code === "42703") {
     console.warn(
