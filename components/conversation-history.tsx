@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, MessageSquare, LogOut, Search, X } from "lucide-react";
 import QueryLimitDisplay from "./query-limit-display";
-import { Conversation, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
+import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
 import { format } from "date-fns";
 
@@ -31,10 +31,97 @@ export default function ConversationHistory({ userEmail, userId, onLogout }: Con
     fetchConversations();
   }, []);
 
-  // Filter conversations based on search query
-  const filteredConversations = conversations.filter(conv => 
-    conv.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Search state with caching (ChatGPT approach)
+  const [searchCache, setSearchCache] = useState<Map<string, ConversationData>>(new Map());
+  const [searchResults, setSearchResults] = useState<Conversation[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Debounced search with caching
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      const query = searchQuery.toLowerCase();
+      const results: Conversation[] = [];
+      
+      // First pass: title search (instant)
+      const titleMatches = conversations.filter(conv => 
+        conv.title.toLowerCase().includes(query)
+      );
+      results.push(...titleMatches);
+      
+      // Second pass: content search for conversations not already matched
+      const remainingConversations = conversations.filter(conv => 
+        !conv.title.toLowerCase().includes(query)
+      );
+      
+      // Process in batches to avoid blocking UI
+      const batchSize = 5;
+      for (let i = 0; i < remainingConversations.length; i += batchSize) {
+        const batch = remainingConversations.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (conv) => {
+          // Check cache first
+          if (searchCache.has(conv.id)) {
+            const cachedData = searchCache.get(conv.id)!;
+            if (searchInContent(cachedData, query)) {
+              results.push(conv);
+            }
+          } else {
+            // Load from API and cache
+            try {
+              const convData = await loadConversation(conv.id);
+              if (convData) {
+                searchCache.set(conv.id, convData);
+                if (searchInContent(convData, query)) {
+                  results.push(conv);
+                }
+              }
+            } catch (error) {
+              console.error('Error loading conversation:', error);
+            }
+          }
+        }));
+        
+        // Small delay to allow UI updates
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, conversations]);
+
+  // Helper function to search in conversation content
+  const searchInContent = (convData: ConversationData, query: string): boolean => {
+    if (!convData.chat_messages) return false;
+    
+    return convData.chat_messages.some((message: any) => {
+      if (message.type === 'message' && message.content) {
+        const messageText = message.content
+          .map((item: any) => item.text || '')
+          .join(' ')
+          .toLowerCase();
+        return messageText.includes(query);
+      }
+      return false;
+    });
+  };
 
   const handleSearchToggle = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -148,11 +235,15 @@ export default function ConversationHistory({ userEmail, userId, onLogout }: Con
           <>
             {isSearchOpen && searchQuery && (
               <div className="px-3 py-2 text-sm text-gray-500 border-b">
-                Found {filteredConversations.length} of {conversations.length} conversations
+                {isSearching ? (
+                  <span>Searching...</span>
+                ) : (
+                  <span>Found {searchResults.length} of {conversations.length} conversations</span>
+                )}
               </div>
             )}
             <div className="space-y-1">
-              {(isSearchOpen && searchQuery ? filteredConversations : conversations).map((conv) => (
+              {(isSearchOpen && searchQuery ? searchResults : conversations).map((conv) => (
                 <div
                   key={conv.id}
                   onClick={() => handleLoadConversation(conv.id)}

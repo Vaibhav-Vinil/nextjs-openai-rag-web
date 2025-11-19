@@ -41,7 +41,7 @@ const Message: React.FC<MessageProps> = ({ message }) => {
         </div>
       ) : (
         <div className="flex flex-col group">
-          <div className="flex relative">
+          <div className="flex">
             <div className="mr-4 rounded-[16px] px-4 py-2 md:mr-24 text-black bg-white font-light flex-1">
               <div>
                 <div className="prose max-w-none">
@@ -53,15 +53,6 @@ const Message: React.FC<MessageProps> = ({ message }) => {
                           <table className="min-w-full border border-gray-200" {...props} />
                         </div>
                       ),
-                      th: ({ node, ...props }) => (
-                        <th className="border border-gray-300 bg-gray-100 px-4 py-2 text-left font-semibold" {...props} />
-                      ),
-                      td: ({ node, ...props }) => (
-                        <td className="border border-gray-300 px-4 py-2" {...props} />
-                      ),
-                      tr: ({ node, ...props }) => (
-                        <tr className="hover:bg-gray-50" {...props} />
-                      ),
                     }}
                   >
                     {removeInlineCitations(message.content[0].text as string)}
@@ -70,18 +61,18 @@ const Message: React.FC<MessageProps> = ({ message }) => {
                 {/* Image display has been disabled */}
               </div>
             </div>
-            <button
-              onClick={handleCopy}
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-gray-100 rounded-md"
-              title={copied ? "Copied!" : "Copy response"}
-            >
-              {copied ? (
-                <Check size={16} className="text-green-600" />
-              ) : (
-                <Copy size={16} className="text-gray-500" />
-              )}
-            </button>
           </div>
+          <button
+            onClick={handleCopy}
+            className="self-start p-1.5 hover:bg-gray-100 rounded-md transition-opacity"
+            title={copied ? "Copied!" : "Copy response"}
+          >
+            {copied ? (
+              <Check size={16} className="text-green-600" />
+            ) : (
+              <Copy size={16} className="text-gray-500" />
+            )}
+          </button>
         </div>
       )}
     </div>
