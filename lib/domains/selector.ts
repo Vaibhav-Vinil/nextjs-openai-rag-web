@@ -137,7 +137,8 @@ const fallbackByReliability = (
 export const selectDomainsForQuery = async (
   query: string,
   overrides?: Partial<DomainSelectionConfig>,
-  supabaseClient?: SupabaseClient<any>
+  supabaseClient?: SupabaseClient<any>,
+  conversationHistory?: any[]
 ): Promise<DomainSelectionResult> => {
   if (!query?.trim()) {
     return {
@@ -228,18 +229,27 @@ export const selectDomainsForQuery = async (
         avoid_for: domain.avoid_for,
       }));
 
-      const systemPrompt = `You are an intelligent domain selector that analyzes user queries and selects the most relevant domains for web search.
+      const systemPrompt = `You are an intelligent domain selector that analyzes user queries and conversation context to select the most relevant domains for web search.
 
 Your task:
-1. Analyze the user query to understand intent and requirements
+1. Analyze the user's current query in the context of the full conversation history
 2. Review all available domains with their metadata
-3. Select the most relevant domains based on:
-   - Brand or product mentions in the query
+3. Consider previous interactions to understand user preferences, follow-up intent, and contextual needs
+4. Select the most relevant domains based on:
+   - Brand or product mentions across the conversation
    - Content type matching (datasheets, news, specs, etc.)
    - Regional relevance
    - Domain strengths and expertise
    - Topics alignment
    - Avoid domains flagged in "avoid_for"
+   - Conversation flow and user intent patterns
+
+Context Analysis:
+- Look for follow-up questions that reference previous topics
+- Identify user preferences expressed earlier in conversation
+- Consider technical level and interests demonstrated
+- Account for geographic or market context mentioned
+- Prioritize domains that have been useful in similar contexts
 
 Selection Rules:
 - Maximum ${selectionConfig.max_domains} domains
@@ -258,15 +268,24 @@ Weighting:
 - Semantic similarity: ${
         selectionConfig.weighting_config.semantic_similarity_weight
       }
+- Conversation context: Enhanced weight for domains relevant to ongoing discussion
 
 Return a JSON array of selected domain IDs in order of relevance, most relevant first.`;
 
       const userPrompt = `User Query: "${query}"
 
+Conversation History:
+${conversationHistory && conversationHistory.length > 0 
+  ? conversationHistory.map((msg, index) => 
+      `${index + 1}. ${msg.role}: ${typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}`
+    ).join('\n')
+  : 'No previous conversation history'
+}
+
 Available Domains:
 ${JSON.stringify(domainMetadata, null, 2)}
 
-Select the most relevant domains for this query. Return only a JSON array of domain IDs.`;
+Select the most relevant domains for this query. Consider the conversation context to understand user intent, preferences, and follow-up requirements. Return only a JSON array of domain IDs.`;
 
       const completion = await openai.chat.completions.create({
         model: DOMAIN_SELECTION_MODEL,

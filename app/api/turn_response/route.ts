@@ -91,7 +91,8 @@ export async function POST(request: Request) {
           const selection = await selectDomainsForQuery(
             latestUserQuery,
             { max_domains: 20 },
-            supabase
+            supabase,
+            messages  // Pass the complete conversation history
           );
           if (selection.domains.length > 0) {
             overrideAllowedDomains = selection.domains.map(
