@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ToolCall from "./tool-call";
 import Message from "./message";
-import Annotations from "./annotations";
+import Annotations, { Annotation } from "./annotations";
 import McpToolsList from "./mcp-tools-list";
 import McpApproval from "./mcp-approval";
 import { Item, McpApprovalRequestItem } from "@/lib/assistant";
@@ -89,7 +89,9 @@ const Chat: React.FC<ChatProps> = ({
                         item.content[0].annotations &&
                         item.content[0].annotations.length > 0 && (
                           <Annotations
-                            annotations={item.content[0].annotations}
+                            annotations={item.content[0].annotations.filter(
+                              (annotation: Annotation) => annotation.type !== "url_citation"
+                            )}
                           />
                         )}
                     </div>

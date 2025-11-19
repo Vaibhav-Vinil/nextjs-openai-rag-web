@@ -3,6 +3,12 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 
+// Function to remove inline citation links from text
+const removeInlineCitations = (text: string): string => {
+  // Remove markdown citation links like ([domain.com](url)) but preserve the line break
+  return text.replace(/\s*\(\[([^\]]+)\]\([^)]+\)\)(\s*\n)?/g, '$2');
+};
+
 interface MessageProps {
   message: MessageItem;
 }
@@ -17,7 +23,7 @@ const Message: React.FC<MessageProps> = ({ message }) => {
               <div>
                 <div>
                   <ReactMarkdown>
-                    {message.content[0].text as string}
+                    {removeInlineCitations(message.content[0].text as string)}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -49,7 +55,7 @@ const Message: React.FC<MessageProps> = ({ message }) => {
                       ),
                     }}
                   >
-                    {message.content[0].text as string}
+                    {removeInlineCitations(message.content[0].text as string)}
                   </ReactMarkdown>
                 </div>
                 {/* Image display has been disabled */}
