@@ -1,7 +1,8 @@
 import { MessageItem } from "@/lib/assistant";
-import React from "react";
+import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
+import { Copy, Check } from "lucide-react";
 
 // Function to remove inline citation links from text
 const removeInlineCitations = (text: string): string => {
@@ -14,6 +15,14 @@ interface MessageProps {
 }
 
 const Message: React.FC<MessageProps> = ({ message }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const text = removeInlineCitations(message.content[0].text as string);
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <div className="text-sm">
       {message.role === "user" ? (
@@ -31,9 +40,9 @@ const Message: React.FC<MessageProps> = ({ message }) => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col">
-          <div className="flex">
-            <div className="mr-4 rounded-[16px] px-4 py-2 md:mr-24 text-black bg-white font-light">
+        <div className="flex flex-col group">
+          <div className="flex relative">
+            <div className="mr-4 rounded-[16px] px-4 py-2 md:mr-24 text-black bg-white font-light flex-1">
               <div>
                 <div className="prose max-w-none">
                   <ReactMarkdown
@@ -61,6 +70,17 @@ const Message: React.FC<MessageProps> = ({ message }) => {
                 {/* Image display has been disabled */}
               </div>
             </div>
+            <button
+              onClick={handleCopy}
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-gray-100 rounded-md"
+              title={copied ? "Copied!" : "Copy response"}
+            >
+              {copied ? (
+                <Check size={16} className="text-green-600" />
+              ) : (
+                <Copy size={16} className="text-gray-500" />
+              )}
+            </button>
           </div>
         </div>
       )}
