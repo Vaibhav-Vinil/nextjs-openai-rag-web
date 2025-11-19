@@ -82,13 +82,15 @@ function FileSearchCell({ toolCall }: ToolCallProps) {
 }
 
 function WebSearchCell({ toolCall }: ToolCallProps) {
+  if (toolCall.status === "completed") {
+    return null;
+  }
+  
   return (
     <div className="flex gap-2 items-center text-blue-500 mb-[-16px] ml-[-8px]">
       <Globe size={16} />
       <div className="text-sm font-medium">
-        {toolCall.status === "completed"
-          ? "Searched the web"
-          : "Searching the web..."}
+        Searching
       </div>
     </div>
   );
