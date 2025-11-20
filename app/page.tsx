@@ -52,6 +52,10 @@ export default function Main() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
+  // Detect if we're viewing a public/shared conversation via URL params
+  const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const initialPublicView = urlParams.get("public") === "true" && Boolean(urlParams.get("conv"));
+  const [isPublicView] = useState<boolean>(initialPublicView);
   const router = useRouter();
   const { resetConversation } = useConversationStore();
   const supabase = createClient();
@@ -64,8 +68,11 @@ export default function Main() {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
       } else {
+        // If this is a public/shared conversation view, don't force a login redirect.
         setIsAuthenticated(false);
-        router.push("/login");
+        if (!isPublicView) {
+          router.push("/login");
+        }
       }
     };
 
@@ -80,9 +87,12 @@ export default function Main() {
         setUserEmail(session.user.email || "");
         setUserId(session.user.id);
       } else {
+        // Avoid redirecting to login when someone is viewing a public/shared conversation
         setIsAuthenticated(false);
         setUserId("");
-        router.push("/login");
+        if (!isPublicView) {
+          router.push("/login");
+        }
       }
     });
 
@@ -99,6 +109,71 @@ export default function Main() {
       router.replace("/", { scroll: false });
     }
   }, [router, resetConversation]);
+
+  // Handle shared conversation and message URLs
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const conversationId = urlParams.get("conv");
+    const messageIndex = urlParams.get("msg");
+    const isPublic = urlParams.get("public") === "true";
+    
+    if (conversationId) {
+      // Load the shared conversation
+      const loadSharedConversation = async () => {
+        try {
+          let data;
+          
+          if (isPublic) {
+            // Use public API endpoint (no authentication required)
+            const response = await fetch(`/api/share/${conversationId}`);
+            if (!response.ok) {
+              throw new Error('Conversation not found');
+            }
+            const result = await response.json();
+            data = {
+              conversation_items: result.conversation.conversation_items,
+              chat_messages: result.conversation.chat_messages
+            };
+          } else {
+            // Use authenticated API endpoint
+            const { loadConversation: loadConvData } = await import("@/lib/conversations");
+            data = await loadConvData(conversationId);
+          }
+          
+          if (data) {
+            const { loadConversation, setCurrentConversationId } = useConversationStore.getState();
+            // If this is a public/shared conversation, load it into the UI
+            // as a new (unsaved) conversation for the current user by
+            // not setting the currentConversationId. This prevents the
+            // client from attempting to update (PUT) another user's
+            // conversation when auto-saving. The user can then save
+            // (POST) to create their own copy.
+            if (isPublic) {
+              loadConversation(data.conversation_items, data.chat_messages, null as any);
+              setCurrentConversationId(null);
+            } else {
+              loadConversation(data.conversation_items, data.chat_messages, conversationId);
+            }
+            
+            // If message index is specified, we could scroll to that message
+            if (messageIndex) {
+              // TODO: Implement scroll to message functionality
+              console.log(`Shared conversation loaded, highlighting message ${messageIndex}`);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading shared conversation:", error);
+        }
+      };
+      
+      loadSharedConversation();
+      
+      // Clean up URL parameters after loading
+      router.replace("/", { scroll: false });
+    }
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -120,7 +195,7 @@ export default function Main() {
   }
 
   // Don't render if not authenticated (will redirect)
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isPublicView) {
     return null;
   }
 
@@ -178,13 +253,15 @@ export default function Main() {
         </div>
       )}
 
-      {/* Conversation History Sidebar */}
-      <CollapsibleConversationSidebar userEmail={userEmail} userId={userId} onLogout={handleLogout} />
+      {/* Conversation History Sidebar (hidden for public/shared views) */}
+      {!isPublicView && (
+        <CollapsibleConversationSidebar userEmail={userEmail} userId={userId} onLogout={handleLogout} />
+      )}
 
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex min-h-0">
           <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8">
-            <ConfigLoader>
+            <ConfigLoader publicView={isPublicView}>
               <Assistant />
             </ConfigLoader>
           </div>

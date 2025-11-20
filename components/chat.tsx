@@ -10,6 +10,8 @@ import { Item, McpApprovalRequestItem } from "@/lib/assistant";
 import LoadingMessage from "./loading-message";
 import ConversationLoading from "./conversation-loading";
 import useConversationStore from "@/stores/useConversationStore";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 interface ChatProps {
   items: Item[];
@@ -37,15 +39,35 @@ const Chat: React.FC<ChatProps> = ({
     }
   };
 
+  const router = useRouter();
+  const supabase = createClient();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const sendMessage = useCallback(async () => {
+    if (!inputMessageText.trim()) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Show login prompt for anonymous users viewing a shared conversation
+        setShowLoginPrompt(true);
+        return;
+      }
+      onSendMessage(inputMessageText);
+      setinputMessageText("");
+    } catch (err) {
+      console.error("Error checking auth before send:", err);
+      setShowLoginPrompt(true);
+    }
+  }, [inputMessageText, onSendMessage, supabase]);
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key === "Enter" && !event.shiftKey && !isComposing) {
         event.preventDefault();
-        onSendMessage(inputMessageText);
-        setinputMessageText("");
+        void sendMessage();
       }
     },
-    [onSendMessage, inputMessageText, isComposing]
+    [sendMessage, isComposing]
   );
 
   // Only auto-scroll if new items were added (not on initial mount or when loading old conversation)
@@ -84,7 +106,7 @@ const Chat: React.FC<ChatProps> = ({
                     <ToolCall toolCall={item} />
                   ) : item.type === "message" ? (
                     <div className="flex flex-col gap-1">
-                      <Message message={item} />
+                      <Message message={item} messageIndex={index} />
                       {item.content &&
                         item.content[0].annotations &&
                         item.content[0].annotations.length > 0 && (
@@ -134,8 +156,7 @@ const Chat: React.FC<ChatProps> = ({
                   data-testid="send-button"
                   className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black disabled:bg-[#D7D7D7] disabled:text-[#f4f4f4] disabled:hover:opacity-100"
                   onClick={() => {
-                    onSendMessage(inputMessageText);
-                    setinputMessageText("");
+                    void sendMessage();
                   }}
                 >
                   <svg
@@ -159,6 +180,29 @@ const Chat: React.FC<ChatProps> = ({
           </div>
         </div>
       </div>
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowLoginPrompt(false)} />
+          <div className="relative bg-white rounded-lg p-6 shadow-lg w-full max-w-sm">
+            <h3 className="text-lg font-medium mb-2">Sign in to continue</h3>
+            <p className="text-sm text-gray-600 mb-4">You must be signed in to continue the conversation. Please sign in to send messages.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="px-3 py-1 rounded bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => router.push('/login')}
+                className="px-3 py-1 rounded bg-blue-600 text-white"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

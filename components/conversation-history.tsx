@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, MessageSquare, LogOut, Search, X } from "lucide-react";
+import { Plus, Trash2, MessageSquare, LogOut, Search, X, Share2, Check } from "lucide-react";
 import QueryLimitDisplay from "./query-limit-display";
 import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
@@ -145,6 +145,25 @@ export default function ConversationHistory({ userEmail, userId, onLogout }: Con
     setConversationLoading(false);
   };
 
+  const [sharedConversationId, setSharedConversationId] = useState<string | null>(null);
+
+  const handleShareConversation = async (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      // Mark conversation as publicly shareable
+      await fetch(`/api/conversations/${conversationId}/share`, {
+        method: 'POST'
+      });
+      
+      const shareUrl = `${window.location.origin}?conv=${conversationId}&public=true`;
+      await navigator.clipboard.writeText(shareUrl);
+      setSharedConversationId(conversationId);
+      setTimeout(() => setSharedConversationId(null), 2000);
+    } catch (error) {
+      console.error('Error sharing conversation:', error);
+    }
+  };
+
   const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm("Are you sure you want to delete this conversation?")) {
@@ -260,18 +279,32 @@ export default function ConversationHistory({ userEmail, userId, onLogout }: Con
                         <h3 className="text-sm font-medium text-gray-900 truncate">
                           {conv.title}
                         </h3>
+                        {/* TODO: Add shareable indicator if conv.is_publicly_shareable */}
                       </div>
                       <p className="text-xs text-gray-500">
                         {format(new Date(conv.updated_at), "MMM d, h:mm a")}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => handleDeleteConversation(conv.id, e)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
-                      title="Delete conversation"
-                    >
-                      <Trash2 size={14} className="text-red-500" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={(e) => handleShareConversation(conv.id, e)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-blue-50 rounded"
+                        title={sharedConversationId === conv.id ? "Link copied!" : "Share conversation"}
+                      >
+                        {sharedConversationId === conv.id ? (
+                          <Check size={14} className="text-green-600" />
+                        ) : (
+                          <Share2 size={14} className="text-blue-500" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteConversation(conv.id, e)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                        title="Delete conversation"
+                      >
+                        <Trash2 size={14} className="text-red-500" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

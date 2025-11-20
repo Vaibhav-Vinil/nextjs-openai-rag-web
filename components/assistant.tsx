@@ -4,6 +4,7 @@ import Chat from "./chat";
 import useConversationStore from "@/stores/useConversationStore";
 import { Item, processMessages } from "@/lib/assistant";
 import { saveConversation } from "@/lib/conversations";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Assistant() {
   const { 
@@ -29,6 +30,20 @@ export default function Assistant() {
     saveTimeoutRef.current = setTimeout(async () => {
       // Don't save if conversation is empty (only has initial message)
       if (conversationItems.length === 0) {
+        return;
+      }
+
+      // Only attempt to save when a user session exists. Anonymous viewers should not trigger saves.
+      try {
+        const supabase = createClient();
+        const sessionResponse = await supabase.auth.getSession();
+        const session = (sessionResponse as any)?.data?.session;
+        if (!session) {
+          // No authenticated session — skip saving for anonymous users.
+          return;
+        }
+      } catch (err) {
+        // If the auth check fails for any reason, don't attempt to save to avoid 401 noise.
         return;
       }
 

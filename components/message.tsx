@@ -2,7 +2,8 @@ import { MessageItem } from "@/lib/assistant";
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Share2 } from "lucide-react";
+import useConversationStore from "@/stores/useConversationStore";
 
 // Function to remove inline citation links from text
 const removeInlineCitations = (text: string): string => {
@@ -12,16 +13,40 @@ const removeInlineCitations = (text: string): string => {
 
 interface MessageProps {
   message: MessageItem;
+  messageIndex?: number;
 }
 
-const Message: React.FC<MessageProps> = ({ message }) => {
+const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const handleCopy = async () => {
     const text = removeInlineCitations(message.content[0].text as string);
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = async () => {
+    // Get current conversation ID from store
+    const { currentConversationId } = useConversationStore.getState();
+    
+    if (currentConversationId) {
+      try {
+        // Mark conversation as publicly shareable
+        await fetch(`/api/conversations/${currentConversationId}/share`, {
+          method: 'POST'
+        });
+        
+        // Generate shareable URL for specific message using public API
+        const shareUrl = `${window.location.origin}?conv=${currentConversationId}&msg=${messageIndex}&public=true`;
+        await navigator.clipboard.writeText(shareUrl);
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+      } catch (error) {
+        console.error('Error sharing conversation:', error);
+      }
+    }
   };
   return (
     <div className="text-sm">
@@ -62,17 +87,30 @@ const Message: React.FC<MessageProps> = ({ message }) => {
               </div>
             </div>
           </div>
-          <button
-            onClick={handleCopy}
-            className="self-start p-1.5 hover:bg-gray-100 rounded-md transition-opacity"
-            title={copied ? "Copied!" : "Copy response"}
-          >
-            {copied ? (
-              <Check size={16} className="text-green-600" />
-            ) : (
-              <Copy size={16} className="text-gray-500" />
-            )}
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={handleCopy}
+              className="self-start p-1.5 hover:bg-gray-100 rounded-md transition-opacity"
+              title={copied ? "Copied!" : "Copy response"}
+            >
+              {copied ? (
+                <Check size={16} className="text-green-600" />
+              ) : (
+                <Copy size={16} className="text-gray-500" />
+              )}
+            </button>
+            <button
+              onClick={handleShare}
+              className="self-start p-1.5 hover:bg-gray-100 rounded-md transition-opacity"
+              title={shared ? "Link copied!" : "Share response"}
+            >
+              {shared ? (
+                <Check size={16} className="text-green-600" />
+              ) : (
+                <Share2 size={16} className="text-gray-500" />
+              )}
+            </button>
+          </div>
         </div>
       )}
     </div>

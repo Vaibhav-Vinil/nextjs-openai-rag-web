@@ -4,9 +4,10 @@ import useToolsStore from "@/stores/useToolsStore";
 
 interface ConfigLoaderProps {
   children: React.ReactNode;
+  publicView?: boolean;
 }
 
-export default function ConfigLoader({ children }: ConfigLoaderProps) {
+export default function ConfigLoader({ children, publicView }: ConfigLoaderProps) {
   const {
     setWebSearchEnabled,
     setFileSearchEnabled,
@@ -21,6 +22,8 @@ export default function ConfigLoader({ children }: ConfigLoaderProps) {
 
   useEffect(() => {
     const loadConfig = async () => {
+      // Skip loading protected config when rendering a public/shared view
+      if (publicView) return;
       try {
         const response = await fetch("/api/config");
         if (response.ok) {
