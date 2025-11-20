@@ -88,11 +88,14 @@ export async function POST(request: Request) {
       const latestUserQuery = extractLatestUserQuery(messages);
       if (latestUserQuery) {
         try {
+          // Only pass an explicit max_domains override if the admin configured it.
+          // If not configured, let the selector use its own default (DEFAULT_SELECTION_CONFIG).
+          const maxDomainsFromConfig = toolsState?.webSearchConfig?.max_domains;
           const selection = await selectDomainsForQuery(
             latestUserQuery,
-            { max_domains: 20 },
+            maxDomainsFromConfig ? { max_domains: maxDomainsFromConfig } : undefined,
             supabase,
-            messages  // Pass the complete conversation history
+            messages // Pass the complete conversation history
           );
           if (selection.domains.length > 0) {
             overrideAllowedDomains = selection.domains.map(

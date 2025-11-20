@@ -139,6 +139,14 @@ export default function WebSearchSettings() {
     });
   };
 
+  const handleMaxDomainsChange = (value: number) => {
+    const v = Math.min(20, Math.max(1, Math.floor(value || 0)));
+    setWebSearchConfig({
+      ...webSearchConfig,
+      max_domains: v,
+    });
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -191,6 +199,21 @@ export default function WebSearchSettings() {
       </div>
 
       <div className="mt-6">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-zinc-600 text-sm">Domain selection</div>
+          <div className="text-xs text-zinc-400">Max domains: {webSearchConfig.max_domains ?? 5}</div>
+        </div>
+        <div className="flex items-center gap-2 mb-4">
+          <label className="text-sm w-20">Max</label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={webSearchConfig.max_domains ?? 5}
+            onChange={(e) => handleMaxDomainsChange(Number(e.target.value))}
+            className="border rounded px-2 py-1 text-sm w-24"
+          />
+        </div>
         <div className="flex items-center justify-between mb-2">
           <div className="text-zinc-600 text-sm">Allowed Domains</div>
           <div className="text-xs text-zinc-400">

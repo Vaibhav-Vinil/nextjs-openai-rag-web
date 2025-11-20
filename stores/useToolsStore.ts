@@ -21,6 +21,7 @@ export type WebSearchConfig = {
     city?: string;
     region?: string;
   };
+  max_domains?: number;
   filters?: {
     allowed_domains?: string[];
   };
