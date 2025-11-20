@@ -6,14 +6,16 @@ import QueryLimitDisplay from "./query-limit-display";
 import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 interface ConversationHistoryProps {
   userEmail?: string;
   userId?: string;
   onLogout?: () => void;
+  publicView?: boolean;
 }
 
-export default function ConversationHistory({ userEmail, userId, onLogout }: ConversationHistoryProps) {
+export default function ConversationHistory({ userEmail, userId, onLogout, publicView }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,9 +29,18 @@ export default function ConversationHistory({ userEmail, userId, onLogout }: Con
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchConversations();
-  }, []);
+    const router = useRouter();
+
+    useEffect(() => {
+      // If this is a public view and there is no authenticated user,
+      // skip fetching protected conversation lists to avoid 401s.
+      if (publicView && !userEmail) {
+        setLoading(false);
+        return;
+      }
+
+      fetchConversations();
+    }, [publicView, userEmail]);
 
   // Search state with caching (ChatGPT approach)
   const [searchCache, setSearchCache] = useState<Map<string, ConversationData>>(new Map());
@@ -131,6 +142,15 @@ export default function ConversationHistory({ userEmail, userId, onLogout }: Con
   };
 
   const handleNewConversation = () => {
+    // If this is a public/shared view and the visitor is not signed in,
+    // prompt them to sign up instead of attempting to fetch or create
+    // protected resources which would result in 401 errors.
+    if (publicView && !userEmail) {
+      // Redirect to signup page
+      router.push('/signup');
+      return;
+    }
+
     resetConversation();
     fetchConversations();
   };

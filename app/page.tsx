@@ -13,10 +13,12 @@ function CollapsibleConversationSidebar({
   userEmail,
   userId,
   onLogout,
+  publicView,
 }: {
   userEmail: string;
   userId: string;
   onLogout: () => void;
+  publicView?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -30,7 +32,7 @@ function CollapsibleConversationSidebar({
     <div className="hidden md:flex relative">
       {isOpen && (
         <div className="w-64 h-full overflow-y-auto bg-white border-r border-gray-200">
-          <ConversationHistory userEmail={userEmail} userId={userId} onLogout={onLogout} />
+          <ConversationHistory userEmail={userEmail} userId={userId} onLogout={onLogout} publicView={publicView} />
         </div>
       )}
       <button
@@ -121,11 +123,64 @@ export default function Main() {
     const messageIndex = urlParams.get("msg");
     const isPublic = urlParams.get("public") === "true";
     const snippet = urlParams.get("snippet");
+    const snippetId = urlParams.get("snippetId");
+
+    // If a `snippetId` param is present, load that persisted snippet from the server
+    if (snippetId) {
+      const loadSnippetById = async () => {
+        try {
+          const response = await fetch(`/api/snippets/${snippetId}`);
+          if (!response.ok) throw new Error("Snippet not found");
+          const result = await response.json();
+          const decoded = result?.snippet?.content || "";
+          const { loadConversation, setCurrentConversationId } = useConversationStore.getState();
+          const assistantItem = {
+            type: "message",
+            role: "assistant",
+            content: [{ type: "output_text", text: decoded }],
+          } as any;
+          loadConversation([], [assistantItem], null as any);
+          setCurrentConversationId(null);
+        } catch (err) {
+          console.error("Error loading snippetId:", err);
+        }
+
+        if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+          try {
+            const newUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, "", newUrl);
+          } catch (e) {
+            router.replace("/", { scroll: false });
+          }
+        } else {
+          router.replace("/", { scroll: false });
+        }
+      };
+
+      loadSnippetById();
+      return;
+    }
 
     // If a `snippet` param is present, load only that response into the UI
     if (snippet) {
       try {
-        const decoded = decodeURIComponent(snippet);
+        const safeDecode = (value: string) => {
+          try {
+            return decodeURIComponent(value);
+          } catch (e) {
+            // Sometimes URLs are malformed (lone '%' or '+' for spaces). Try sanitizing.
+            try {
+              const replacedPlus = value.replace(/\+/g, "%20");
+              const sanitized = replacedPlus.replace(/%(?![0-9A-Fa-f]{2})/g, "%25");
+              return decodeURIComponent(sanitized);
+            } catch (e2) {
+              // As a last resort, return the raw value so the UI shows something instead of crashing.
+              return value;
+            }
+          }
+        };
+
+        const decoded = safeDecode(snippet);
         const { loadConversation, setCurrentConversationId } = useConversationStore.getState();
         const assistantItem = {
           type: "message",
@@ -137,8 +192,19 @@ export default function Main() {
       } catch (err) {
         console.error("Error loading snippet:", err);
       }
-      // Clean up URL and return early
-      router.replace("/", { scroll: false });
+      // Clean up URL without causing a Next.js navigation so the conversation
+      // store is preserved (router.replace can trigger a re-render that resets state).
+      if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+        try {
+          const newUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, "", newUrl);
+        } catch (e) {
+          // Fallback to router.replace if history API is unavailable
+          router.replace("/", { scroll: false });
+        }
+      } else {
+        router.replace("/", { scroll: false });
+      }
       return;
     }
 
@@ -313,9 +379,7 @@ export default function Main() {
       )}
 
       {/* Conversation History Sidebar (hidden for public/shared views) */}
-      {!isPublicView && (
-        <CollapsibleConversationSidebar userEmail={userEmail} userId={userId} onLogout={handleLogout} />
-      )}
+      <CollapsibleConversationSidebar userEmail={userEmail} userId={userId} onLogout={handleLogout} publicView={isPublicView} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex min-h-0">

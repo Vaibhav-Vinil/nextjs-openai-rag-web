@@ -4,17 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-    if (error || !session) {
+    if (error || !user) {
       return NextResponse.json({ authenticated: false });
     }
 
     return NextResponse.json({ 
       authenticated: true, 
       user: {
-        email: session.user.email,
-        id: session.user.id,
+        email: user.email,
+        id: user.id,
       }
     });
   } catch (error) {

@@ -5,9 +5,9 @@ import { isAdmin } from '@/config/admin-emails';
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!session || !isAdmin(session.user.email || '')) {
+    if (authError || !user || !isAdmin(user.email || '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -74,9 +74,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!session || !isAdmin(session.user.email || '')) {
+    if (authError || !user || !isAdmin(user.email || '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

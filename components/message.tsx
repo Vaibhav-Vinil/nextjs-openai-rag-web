@@ -28,11 +28,17 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
 
   const handleShare = async () => {
     try {
-      // Create a shareable URL that contains only this response as a snippet.
-      // We avoid marking the whole conversation as public for single-response shares.
+      // Create a persistent snippet on the server and return a short id.
       const text = removeInlineCitations(message.content[0].text as string);
-      const encoded = encodeURIComponent(text);
-      const shareUrl = `${window.location.origin}?snippet=${encoded}&public_snippet=true`;
+      const res = await fetch(`/api/snippets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+      if (!res.ok) throw new Error("Failed to create snippet");
+      const data = await res.json();
+      const id = data.id;
+      const shareUrl = `${window.location.origin}/share/${id}`;
       await navigator.clipboard.writeText(shareUrl);
       setShared(true);
       setTimeout(() => setShared(false), 2000);

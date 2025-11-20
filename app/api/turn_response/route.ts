@@ -44,9 +44,9 @@ export async function POST(request: Request) {
   try {
     // Check authentication
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-    
-    if (authError || !session) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401 }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     }
 
     const { messages, toolsState } = await request.json();
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Check query limit
     const { allowed } = await checkQueryLimit(userId);
