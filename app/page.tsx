@@ -2,7 +2,7 @@
 import Assistant from "@/components/assistant";
 import ConversationHistory from "@/components/conversation-history";
 import ConfigLoader from "@/components/config-loader";
-import { PanelsTopLeft, X, Settings } from "lucide-react";
+import { PanelsTopLeft, X, Settings, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useConversationStore from "@/stores/useConversationStore";
@@ -54,8 +54,10 @@ export default function Main() {
   const [userId, setUserId] = useState<string>("");
   // Detect if we're viewing a public/shared conversation via URL params
   const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
-  const initialPublicView = urlParams.get("public") === "true" && Boolean(urlParams.get("conv"));
+  // Consider both full conversation shares and single-response snippet shares public
+  const initialPublicView = (urlParams.get("public") === "true" && Boolean(urlParams.get("conv"))) || (urlParams.get("public_snippet") === "true" && Boolean(urlParams.get("snippet")));
   const [isPublicView] = useState<boolean>(initialPublicView);
+  const [shareCopied, setShareCopied] = useState(false);
   const router = useRouter();
   const { resetConversation } = useConversationStore();
   const supabase = createClient();
@@ -118,7 +120,28 @@ export default function Main() {
     const conversationId = urlParams.get("conv");
     const messageIndex = urlParams.get("msg");
     const isPublic = urlParams.get("public") === "true";
-    
+    const snippet = urlParams.get("snippet");
+
+    // If a `snippet` param is present, load only that response into the UI
+    if (snippet) {
+      try {
+        const decoded = decodeURIComponent(snippet);
+        const { loadConversation, setCurrentConversationId } = useConversationStore.getState();
+        const assistantItem = {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: decoded }],
+        } as any;
+        loadConversation([], [assistantItem], null as any);
+        setCurrentConversationId(null);
+      } catch (err) {
+        console.error("Error loading snippet:", err);
+      }
+      // Clean up URL and return early
+      router.replace("/", { scroll: false });
+      return;
+    }
+
     if (conversationId) {
       // Load the shared conversation
       const loadSharedConversation = async () => {
@@ -201,6 +224,42 @@ export default function Main() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">
+      {/* Top-right controls: Share whole chat (desktop) */}
+      <div className="fixed top-4 right-4 hidden md:flex items-center gap-2 z-40">
+        {/* Show full-chat share button only when authenticated and a conversation is loaded */}
+        {isAuthenticated && (
+          <button
+            onClick={async () => {
+              try {
+                const state = useConversationStore.getState();
+                const convId = state.currentConversationId;
+                if (!convId) return;
+                // Mark conversation as publicly shareable
+                const res = await fetch(`/api/conversations/${convId}/share`, { method: 'POST' });
+                if (!res.ok) throw new Error('Failed to mark conversation public');
+                const shareUrl = `${window.location.origin}?conv=${convId}&public=true`;
+                await navigator.clipboard.writeText(shareUrl);
+                // Visual feedback: show copied state for 2s
+                setShareCopied(true);
+                setTimeout(() => setShareCopied(false), 2000);
+              } catch (err) {
+                console.error('Error sharing full conversation:', err);
+              }
+            }}
+            className="rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
+            title="Share entire conversation"
+          >
+            {shareCopied ? (
+              <>
+                <Check size={16} className="text-green-600" />
+                <span className="text-sm">Copied</span>
+              </>
+            ) : (
+              <span className="text-sm">Share</span>
+            )}
+          </button>
+        )}
+      </div>
       {/* Mobile top controls */}
       <div className="fixed top-4 left-4 flex gap-2 md:hidden z-40">
         <button

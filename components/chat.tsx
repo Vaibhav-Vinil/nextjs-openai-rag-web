@@ -195,7 +195,7 @@ const Chat: React.FC<ChatProps> = ({
               </button>
               <button
                 onClick={() => router.push('/login')}
-                className="px-3 py-1 rounded bg-blue-600 text-white"
+                className="px-3 py-1 rounded bg-black text-white hover:opacity-90"
               >
                 Sign in
               </button>

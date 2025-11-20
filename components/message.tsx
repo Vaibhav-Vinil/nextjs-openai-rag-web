@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 import { Copy, Check, Share2 } from "lucide-react";
-import useConversationStore from "@/stores/useConversationStore";
 
 // Function to remove inline citation links from text
 const removeInlineCitations = (text: string): string => {
@@ -28,24 +27,17 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
   };
 
   const handleShare = async () => {
-    // Get current conversation ID from store
-    const { currentConversationId } = useConversationStore.getState();
-    
-    if (currentConversationId) {
-      try {
-        // Mark conversation as publicly shareable
-        await fetch(`/api/conversations/${currentConversationId}/share`, {
-          method: 'POST'
-        });
-        
-        // Generate shareable URL for specific message using public API
-        const shareUrl = `${window.location.origin}?conv=${currentConversationId}&msg=${messageIndex}&public=true`;
-        await navigator.clipboard.writeText(shareUrl);
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      } catch (error) {
-        console.error('Error sharing conversation:', error);
-      }
+    try {
+      // Create a shareable URL that contains only this response as a snippet.
+      // We avoid marking the whole conversation as public for single-response shares.
+      const text = removeInlineCitations(message.content[0].text as string);
+      const encoded = encodeURIComponent(text);
+      const shareUrl = `${window.location.origin}?snippet=${encoded}&public_snippet=true`;
+      await navigator.clipboard.writeText(shareUrl);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch (error) {
+      console.error('Error sharing response snippet:', error);
     }
   };
   return (
