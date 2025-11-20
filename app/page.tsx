@@ -258,9 +258,8 @@ export default function Main() {
       };
       
       loadSharedConversation();
-      
-      // Clean up URL parameters after loading
-      router.replace("/", { scroll: false });
+      // Keep the `conv` URL params intact so the shared link persists
+      // in the address bar instead of navigating back to the base URL.
     }
   }, [router]);
 
