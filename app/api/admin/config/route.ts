@@ -110,7 +110,7 @@ export async function PUT(request: NextRequest) {
     const updates = Object.entries(configurations).map(([key, value]) => ({
       key,
       value,
-      updated_by: session.user.id
+      updated_by: user.id
     }));
 
     const { data: configs, error } = await supabase

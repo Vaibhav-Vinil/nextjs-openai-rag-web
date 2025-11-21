@@ -57,11 +57,20 @@ export const getTools = async (
       : [...(webSearchConfig.filters?.allowed_domains || [])];
     
     // Process and deduplicate domains
-    webSearchTool.filters.allowed_domains = Array.from(new Set(
+    const processedDomains = Array.from(new Set(
       allowedDomains
         .map(domain => domain.trim().replace(/^https?:\/\//, '').split('/')[0]) // Remove protocol and path
         .filter(domain => domain && !domain.startsWith('http')) // Filter out invalid domains
     )).slice(0, 20); // Limit to 20 domains as per API
+    
+    webSearchTool.filters.allowed_domains = processedDomains;
+    
+    // Log the domains being used for web search
+    if (processedDomains.length > 0) {
+      console.log('Searching the following domains:', processedDomains);
+    } else {
+      console.log('No domain restrictions - searching all domains');
+    }
 
     tools.push(webSearchTool);
   }

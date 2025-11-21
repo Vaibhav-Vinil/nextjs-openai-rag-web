@@ -59,9 +59,15 @@ const mergeConfig = (
     return DEFAULT_SELECTION_CONFIG;
   }
 
+  // If max_domains is provided in overrides, use it directly (within limits)
+  const max_domains = overrides.max_domains !== undefined
+    ? Math.min(Math.max(1, overrides.max_domains), MAX_ALLOWED_DOMAINS)
+    : DEFAULT_SELECTION_CONFIG.max_domains;
+
   return {
     ...DEFAULT_SELECTION_CONFIG,
     ...overrides,
+    max_domains, // Use the calculated max_domains value
     weighting_config: {
       ...DEFAULT_SELECTION_CONFIG.weighting_config,
       ...(overrides.weighting_config || {}),
@@ -202,10 +208,7 @@ export const selectDomainsForQuery = async (
   }
 
   const selectionConfig = mergeConfig(overrides);
-  selectionConfig.max_domains = Math.min(
-    Math.max(selectionConfig.max_domains, 1),
-    MAX_ALLOWED_DOMAINS
-  );
+  // Max domains is now properly handled in mergeConfig
 
   const openaiApiKey = process.env.OPENAI_API_KEY;
   let responseContent: string | undefined;

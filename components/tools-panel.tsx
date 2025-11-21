@@ -91,6 +91,17 @@ export default function ToolsPanel() {
 
   // Save configuration to admin API whenever any tool setting changes
   const saveConfig = React.useCallback(async () => {
+    // First, get the current config from the server to preserve existing values
+    let currentConfig = {};
+    try {
+      const response = await fetch("/api/admin/config");
+      if (response.ok) {
+        currentConfig = await response.json();
+      }
+    } catch (error) {
+      console.error("Failed to fetch current config:", error);
+    }
+
     const config = {
       web_search_enabled: webSearchEnabled,
       file_search_enabled: fileSearchEnabled,
@@ -98,8 +109,19 @@ export default function ToolsPanel() {
       code_interpreter_enabled: codeInterpreterEnabled,
       mcp_enabled: mcpEnabled,
       google_integration_enabled: googleIntegrationEnabled,
-      web_search_config: webSearchConfig,
-      mcp_config: mcpConfig,
+      // Preserve the existing web_search_config but merge with current state
+      web_search_config: {
+        ...(currentConfig.web_search_config || {}),  // Keep existing config from server
+        ...webSearchConfig,  // Apply local changes
+        filters: {
+          ...(currentConfig.web_search_config?.filters || {}),  // Keep existing filters
+          ...(webSearchConfig.filters || {}),  // Apply local filter changes
+        },
+      },
+      mcp_config: {
+        ...(currentConfig.mcp_config || {}),
+        ...mcpConfig,
+      },
       vector_store: vectorStore,
     };
 
@@ -113,7 +135,8 @@ export default function ToolsPanel() {
       });
       
       if (!response.ok) {
-        console.error("Failed to save admin configuration");
+        const error = await response.text();
+        console.error("Failed to save admin configuration:", error);
       }
     } catch (error) {
       console.error("Failed to save admin configuration:", error);

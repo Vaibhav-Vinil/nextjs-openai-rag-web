@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import useToolsStore from "@/stores/useToolsStore";
+import type { WebSearchConfig } from "@/stores/useToolsStore";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { X, Plus } from "lucide-react";
@@ -18,10 +19,13 @@ export default function WebSearchSettings() {
       const response = await fetch('/api/domains/shared');
       if (response.ok) {
         const { domains } = await response.json();
+        // Get current state from the store
+        const currentConfig = useToolsStore.getState().webSearchConfig;
+        // Update only the allowed_domains while preserving other config
         setWebSearchConfig({
-          ...webSearchConfig,
+          ...currentConfig,
           filters: {
-            ...webSearchConfig.filters,
+            ...(currentConfig.filters || {}),
             allowed_domains: domains || []
           }
         });
@@ -31,10 +35,9 @@ export default function WebSearchSettings() {
     }
   };
 
+  // Sync domains when component mounts
   useEffect(() => {
     syncDomains();
-    const interval = setInterval(syncDomains, 10000); // Sync every 10 seconds
-    return () => clearInterval(interval);
   }, []);
 
   const handleClear = async () => {
@@ -139,12 +142,42 @@ export default function WebSearchSettings() {
     });
   };
 
-  const handleMaxDomainsChange = (value: number) => {
-    const v = Math.min(20, Math.max(1, Math.floor(value || 0)));
-    setWebSearchConfig({
+  const handleMaxDomainsChange = async (value: number) => {
+    const v = Math.min(20, Math.max(1, Math.floor(value || 1))); // Ensure at least 1
+    
+    // Create a new config object with the updated max_domains value
+    const newConfig: WebSearchConfig = {
       ...webSearchConfig,
       max_domains: v,
-    });
+      filters: {
+        ...(webSearchConfig.filters || {}),
+        // Ensure filters object exists
+      }
+    };
+    
+    // Update local state
+    setWebSearchConfig(newConfig);
+    
+    // Save to Supabase
+    try {
+      const response = await fetch('/api/admin/config', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          configurations: {
+            web_search_config: newConfig
+          }
+        }),
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to save max_domains to Supabase');
+      }
+    } catch (error) {
+      console.error('Error saving max_domains to Supabase:', error);
+    }
   };
 
   return (
@@ -211,6 +244,7 @@ export default function WebSearchSettings() {
             max={20}
             value={webSearchConfig.max_domains ?? 5}
             onChange={(e) => handleMaxDomainsChange(Number(e.target.value))}
+            onBlur={(e) => handleMaxDomainsChange(Number(e.target.value))} // Save on blur as well
             className="border rounded px-2 py-1 text-sm w-24"
           />
         </div>
