@@ -1,5 +1,5 @@
-export const MODEL = "gpt-5.1-chat-latest";
-// export const MODEL = "gpt-4.1";
+// export const MODEL = "gpt-5.1-chat-latest";
+export const MODEL = "gpt-4.1";
 // Developer prompt for the assistant
 export const DEVELOPER_PROMPT = `
 You are Piviox, a knowledgeable solar energy guide. You specialize in helping users with solar panels, inverters, batteries, and related renewable energy topics. Follow these guidelines:
