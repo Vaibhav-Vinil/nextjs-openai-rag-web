@@ -88,21 +88,29 @@ export async function POST(request: Request) {
       const latestUserQuery = extractLatestUserQuery(messages);
       if (latestUserQuery) {
         try {
-          // Only pass an explicit max_domains override if the admin configured it.
-          // If not configured, let the selector use its own default (DEFAULT_SELECTION_CONFIG).
-          const maxDomainsFromConfig = toolsState?.webSearchConfig?.max_domains;
+          // Get the max_domains from webSearchConfig, defaulting to 5 if not set
+          const maxDomainsFromConfig = toolsState?.webSearchConfig?.max_domains || 5;
+          
+          // Always pass max_domains to ensure it's enforced
           const selection = await selectDomainsForQuery(
             latestUserQuery,
-            maxDomainsFromConfig ? { max_domains: maxDomainsFromConfig } : undefined,
+            { 
+              max_domains: maxDomainsFromConfig,
+              // Keep any existing overrides
+              ...(toolsState.webSearchConfig || {})
+            },
             supabase,
-            messages // Pass the complete conversation history
+            messages
           );
+
           if (selection.domains.length > 0) {
-            overrideAllowedDomains = selection.domains.map(
-              (domain) => domain.domain
-            );
+            // Ensure we don't exceed max_domains
+            overrideAllowedDomains = selection.domains
+              .slice(0, maxDomainsFromConfig)
+              .map((domain) => domain.domain);
+
             console.log(
-              "Dynamic domain selection for query:",
+              `Dynamic domain selection for query (max ${maxDomainsFromConfig} domains):`,
               latestUserQuery,
               overrideAllowedDomains
             );
@@ -121,9 +129,41 @@ export async function POST(request: Request) {
     console.log("Tools:", tools);
     console.log("Received messages:", messages);
 
+    // Clean messages for API compatibility
+    const cleanMessages = (messages: any[]) => {
+      const cleaned = [];
+      
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        
+        // Skip reasoning messages for GPT-5.1
+        if (MODEL.includes('gpt-5') && msg.type === 'reasoning') {
+          continue;
+        }
+        
+        // Ensure message has required fields
+        if (msg.role && (msg.content || msg.content === '')) {
+          cleaned.push({
+            role: msg.role,
+            content: Array.isArray(msg.content) 
+              ? msg.content.map((item: any) => ({
+                  type: item.type || 'text',
+                  text: item.text || JSON.stringify(item)
+                }))
+              : msg.content
+          });
+        }
+      }
+      
+      return cleaned;
+    };
+
+    const cleanedMessages = cleanMessages(messages);
+    console.log('Cleaned messages for API:', JSON.stringify(cleanedMessages, null, 2));
+
     const events = await openai.responses.create({
       model: MODEL,
-      input: messages,
+      input: cleanedMessages,
       instructions: getDeveloperPrompt(),
       tools,
       stream: true,

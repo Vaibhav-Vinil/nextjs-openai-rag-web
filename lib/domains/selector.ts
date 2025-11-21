@@ -55,24 +55,33 @@ const DOMAIN_SELECTION_MODEL = "gpt-4-turbo-preview";
 const mergeConfig = (
   overrides?: Partial<DomainSelectionConfig>
 ): DomainSelectionConfig => {
-  if (!overrides) {
-    return DEFAULT_SELECTION_CONFIG;
+  // Always use the overrides if provided, otherwise use defaults
+  const baseConfig = { ...DEFAULT_SELECTION_CONFIG };
+  
+  // Apply overrides if they exist
+  if (overrides) {
+    // If max_domains is provided in overrides, use it (enforcing limits)
+    if (overrides.max_domains !== undefined) {
+      baseConfig.max_domains = Math.min(
+        Math.max(1, overrides.max_domains),
+        MAX_ALLOWED_DOMAINS
+      );
+    }
+    
+    // Merge other config properties
+    Object.assign(baseConfig, {
+      ...overrides,
+      // Preserve our max_domains setting
+      max_domains: baseConfig.max_domains,
+      // Merge weighting config
+      weighting_config: {
+        ...baseConfig.weighting_config,
+        ...(overrides.weighting_config || {})
+      }
+    });
   }
-
-  // If max_domains is provided in overrides, use it directly (within limits)
-  const max_domains = overrides.max_domains !== undefined
-    ? Math.min(Math.max(1, overrides.max_domains), MAX_ALLOWED_DOMAINS)
-    : DEFAULT_SELECTION_CONFIG.max_domains;
-
-  return {
-    ...DEFAULT_SELECTION_CONFIG,
-    ...overrides,
-    max_domains, // Use the calculated max_domains value
-    weighting_config: {
-      ...DEFAULT_SELECTION_CONFIG.weighting_config,
-      ...(overrides.weighting_config || {}),
-    },
-  };
+  
+  return baseConfig;
 };
 
 const stripCodeFences = (content: string): string => {
@@ -360,18 +369,20 @@ Select the most relevant domains for this query. Consider the conversation conte
     selectedDomains = [...selectedDomains, ...topOff];
   }
 
-  // Deduplicate and enforce limit
+  // Deduplicate domains
   const uniqueDomainsMap = new Map<string, DomainRecord>();
   for (const domain of selectedDomains) {
     if (!uniqueDomainsMap.has(domain.id)) {
       uniqueDomainsMap.set(domain.id, domain);
-    }
-    if (uniqueDomainsMap.size >= selectionConfig.max_domains) {
-      break;
+      // Strictly enforce max_domains limit
+      if (uniqueDomainsMap.size >= selectionConfig.max_domains) {
+        break;
+      }
     }
   }
 
-  const finalDomains = Array.from(uniqueDomainsMap.values());
+  // Convert to array and ensure we don't exceed max_domains
+  const finalDomains = Array.from(uniqueDomainsMap.values()).slice(0, selectionConfig.max_domains);
 
   return {
     domains: finalDomains,
