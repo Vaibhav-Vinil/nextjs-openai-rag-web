@@ -25,6 +25,8 @@ interface ConversationState {
   rawSet: (state: any) => void;
   resetConversation: () => void;
   loadConversation: (conversationItems: any[], chatMessages: Item[], id: string) => void;
+  webSearchIndicatorId: string | null;
+  setWebSearchIndicatorId: (id: string | null) => void;
 }
 
 const useConversationStore = create<ConversationState>((set) => ({
@@ -39,6 +41,7 @@ const useConversationStore = create<ConversationState>((set) => ({
   isAssistantLoading: false,
   isConversationLoading: false,
   currentConversationId: null,
+  webSearchIndicatorId: null,
   setChatMessages: (items) => set({ chatMessages: items }),
   setConversationItems: (messages) => set({ conversationItems: messages }),
   addChatMessage: (item) =>
@@ -62,13 +65,16 @@ const useConversationStore = create<ConversationState>((set) => ({
       ],
       conversationItems: [],
       currentConversationId: null,
+      webSearchIndicatorId: null,
     })),
   loadConversation: (conversationItems, chatMessages, id) =>
     set(() => ({
       conversationItems,
       chatMessages,
       currentConversationId: id,
+      webSearchIndicatorId: null,
     })),
+  setWebSearchIndicatorId: (id) => set({ webSearchIndicatorId: id }),
 }));
 
 export default useConversationStore;

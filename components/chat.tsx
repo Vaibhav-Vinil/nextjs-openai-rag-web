@@ -26,6 +26,7 @@ const Chat: React.FC<ChatProps> = ({
 }) => {
   const itemsEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const itemKeyMapRef = useRef(new WeakMap<Item, string>());
   const [inputMessageText, setinputMessageText] = useState<string>("");
   // This state is used to provide better user experience for non-English IMEs such as Japanese
   const [isComposing, setIsComposing] = useState(false);
@@ -59,6 +60,26 @@ const Chat: React.FC<ChatProps> = ({
       setShowLoginPrompt(true);
     }
   }, [inputMessageText, onSendMessage, supabase]);
+
+  const getItemKey = useCallback(
+    (item: Item, index: number) => {
+      const existingId = (item as any).id;
+      if (typeof existingId === "string" && existingId.length > 0) {
+        return existingId;
+      }
+      const map = itemKeyMapRef.current;
+      if (!map.has(item)) {
+        map.set(
+          item,
+          `item-${index}-${Date.now().toString(36)}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}`
+        );
+      }
+      return map.get(item)!;
+    },
+    []
+  );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -101,7 +122,7 @@ const Chat: React.FC<ChatProps> = ({
           <div className="flex-1 flex flex-col justify-end">
             <div className="space-y-5">
               {items.map((item, index) => (
-                <React.Fragment key={index}>
+                <React.Fragment key={getItemKey(item, index)}>
                   {item.type === "tool_call" ? (
                     <ToolCall toolCall={item} />
                   ) : item.type === "message" ? (
