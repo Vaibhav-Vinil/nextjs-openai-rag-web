@@ -56,25 +56,49 @@ export const getTools = async (
       ? [...(options?.overrideAllowedDomains || [])]
       : [...(webSearchConfig.filters?.allowed_domains || [])];
     
-    // Process and deduplicate domains
-    const processedDomains = Array.from(new Set(
-      allowedDomains
-        .map(domain => domain.trim().replace(/^https?:\/\//, '').split('/')[0]) // Remove protocol and path
-        .filter(domain => domain && !domain.startsWith('http')) // Filter out invalid domains
-    )).slice(0, 20); // Limit to 20 domains as per API
-    
-    webSearchTool.filters.allowed_domains = processedDomains;
-    
-    // Log the domains being used for web search
-    if (processedDomains.length > 0) {
-      console.log('Searching the following domains:', processedDomains);
-    } else {
-      console.log('No domain restrictions - searching all domains');
+    // Get mandatory domains that should always be included
+    let mandatoryDomains: string[] = [];
+    try {
+      const { getMandatoryDomains } = await import('@/lib/domains/mandatory');
+      mandatoryDomains = await getMandatoryDomains();
+      console.log('Fetched mandatory domains from database:', mandatoryDomains);
+    } catch (error) {
+      console.error('Error fetching mandatory domains:', error);
     }
+
+    // Process allowed domains (clean and filter)
+    const cleanedAllowedDomains = allowedDomains
+      .map(domain => 
+        domain
+          .trim()
+          .replace(/^https?:\/\//, '')
+          .split('/')[0]
+          .toLowerCase()
+      )
+      .filter(domain => domain && !domain.startsWith('http'));
+
+    // Combine and deduplicate domains (mandatory + allowed)
+    const allDomains = [
+      ...new Set([
+        ...mandatoryDomains.map(d => d.toLowerCase().trim()),
+        ...cleanedAllowedDomains
+      ])
+    ];
+
+    // Set the domains to be used for search (limit to 20 as per API)
+    const processedDomains = allDomains.slice(0, 20);
+    webSearchTool.filters.allowed_domains = processedDomains;
+
+    // Log the final domain selection
+    console.log('=== DOMAIN SELECTION ===');
+    console.log('Mandatory domains:', mandatoryDomains);
+    console.log('Allowed domains:', cleanedAllowedDomains);
+    console.log('Final search domains:', processedDomains);
 
     tools.push(webSearchTool);
   }
 
+  // ... rest of the function remains the same ...
   if (fileSearchEnabled) {
     const fileSearchTool = {
       type: "file_search",
@@ -125,7 +149,6 @@ export const getTools = async (
   }
 
   if (googleIntegrationEnabled) {
-    // Get fresh tokens (refresh if near expiry or missing access token when refresh exists)
     const { accessToken } = await getFreshAccessToken();
     tools.push(...getGoogleConnectorTools(accessToken!));
   }

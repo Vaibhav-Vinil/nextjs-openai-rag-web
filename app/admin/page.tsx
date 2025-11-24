@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import ToolsPanel from "@/components/tools-panel";
 import AdminUtilities from "@/components/admin-utilities";
 import DomainsManager from "@/components/admin/domains-manager";
+import { MandatoryDomains } from "@/components/admin/mandatory-domains";
 import { isAdmin } from "@/config/admin-emails";
 import { Shield, ArrowLeft } from "lucide-react";
 
@@ -132,6 +133,19 @@ export default function AdminPage() {
             </div>
             <div className="p-6">
               <DomainsManager />
+            </div>
+          </div>
+
+          {/* Mandatory Search Domains */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-900">Mandatory Search Domains</h1>
+              <p className="text-gray-600 mt-2">
+                Domains that will always be included in web searches, regardless of other filters
+              </p>
+            </div>
+            <div className="p-6">
+              <MandatoryDomains />
             </div>
           </div>
 
