@@ -8,12 +8,12 @@ interface WebSearchTool extends WebSearchConfig {
 }
 
 type GetToolsOptions = {
-  overrideAllowedDomains?: string[];
+  // No more domain overrides needed
 };
 
 export const getTools = async (
   toolsState: ToolsState,
-  options?: GetToolsOptions
+  _options?: GetToolsOptions
 ) => {
   const {
     webSearchEnabled,
@@ -44,61 +44,10 @@ export const getTools = async (
       webSearchTool.user_location = webSearchConfig.user_location;
     }
 
-    // Initialize filters if not exists
-    webSearchTool.filters = webSearchTool.filters || {};
-    
-    const hasOverride =
-      options?.overrideAllowedDomains &&
-      options.overrideAllowedDomains.length > 0;
-
-    // Use dynamically selected domains if provided, otherwise fall back to config
-    const allowedDomains = hasOverride
-      ? [...(options?.overrideAllowedDomains || [])]
-      : [...(webSearchConfig.filters?.allowed_domains || [])];
-    
-    // Get mandatory domains that should always be included
-    let mandatoryDomains: string[] = [];
-    try {
-      const { getMandatoryDomains } = await import('@/lib/domains/mandatory');
-      mandatoryDomains = await getMandatoryDomains();
-      console.log('Fetched mandatory domains from database:', mandatoryDomains);
-    } catch (error) {
-      console.error('Error fetching mandatory domains:', error);
-    }
-
-    // Process allowed domains (clean and filter)
-    const cleanedAllowedDomains = allowedDomains
-      .map(domain => 
-        domain
-          .trim()
-          .replace(/^https?:\/\//, '')
-          .split('/')[0]
-          .toLowerCase()
-      )
-      .filter(domain => domain && !domain.startsWith('http'));
-
-    // Combine and deduplicate domains (mandatory + allowed)
-    const allDomains = [
-      ...new Set([
-        ...mandatoryDomains.map(d => d.toLowerCase().trim()),
-        ...cleanedAllowedDomains
-      ])
-    ];
-
-    // Set the domains to be used for search (limit to 20 as per API)
-    const processedDomains = allDomains.slice(0, 20);
-    webSearchTool.filters.allowed_domains = processedDomains;
-
-    // Log the final domain selection
-    console.log('=== DOMAIN SELECTION ===');
-    console.log('Mandatory domains:', mandatoryDomains);
-    console.log('Allowed domains:', cleanedAllowedDomains);
-    console.log('Final search domains:', processedDomains);
-
+    // No domain restrictions - web search is completely open
     tools.push(webSearchTool);
   }
 
-  // ... rest of the function remains the same ...
   if (fileSearchEnabled) {
     const fileSearchTool = {
       type: "file_search",
