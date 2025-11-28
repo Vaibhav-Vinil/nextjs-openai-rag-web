@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global background styles */
+html, body, #__next {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Set background image */
+body {
+  background-image: url('/images.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-color: transparent !important;
+}
+
+/* Ensure content is above background */
+#__next {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  background-color: transparent;
+}
+
+/* Remove any default background colors */
+*, *::before, *::after {
+  background-color: transparent;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

@@ -288,7 +288,7 @@ export default function Main() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden bg-transparent">
       {/* Top-right controls: Share whole chat (desktop) */}
       <div className="fixed top-4 right-4 hidden md:flex items-center gap-2 z-40">
         {/* Show full-chat share button only when authenticated and a conversation is loaded */}

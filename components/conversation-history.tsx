@@ -198,7 +198,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 border-r">
+    <div className="h-full flex flex-col bg-white/30 backdrop-blur-sm border-r">
       {/* User info and logout */}
       <div className="p-4 border-b bg-white">
         {userEmail && (

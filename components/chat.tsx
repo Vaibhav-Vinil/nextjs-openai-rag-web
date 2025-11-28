@@ -112,7 +112,7 @@ const Chat: React.FC<ChatProps> = ({
   }, [items.length]);
 
   return (
-    <div className="flex justify-center items-stretch size-full h-full bg-white">
+    <div className="flex justify-center items-stretch size-full h-full bg-transparent">
       <div className="flex grow flex-col h-full w-full max-w-3xl min-w-0">
         <div
           ref={scrollContainerRef}
@@ -155,7 +155,7 @@ const Chat: React.FC<ChatProps> = ({
         </div>
         <div className="px-4 sm:px-6 md:px-10 pb-6">
           <div className="flex w-full items-center">
-            <div className="flex w-full flex-col gap-1.5 rounded-[20px] p-2.5 pl-1.5 transition-colors bg-white shadow-md">
+            <div className="flex w-full flex-col gap-1.5 rounded-[20px] p-2.5 pl-1.5 transition-colors bg-white/80 backdrop-blur-sm shadow-md">
               <div className="flex items-end gap-1.5 md:gap-2 pl-4">
                 <div className="flex min-w-0 flex-1 flex-col">
                   <textarea
