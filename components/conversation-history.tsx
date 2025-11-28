@@ -42,13 +42,15 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       fetchConversations();
     }, [publicView, userEmail]);
 
-  // Search state with caching (ChatGPT approach)
+  // Search state with caching
   const [searchCache, setSearchCache] = useState<Map<string, ConversationData>>(new Map());
   const [searchResults, setSearchResults] = useState<Conversation[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const [foundInTitles, setFoundInTitles] = useState<Conversation[]>([]);
+  const [foundInContent, setFoundInContent] = useState<Conversation[]>([]);
 
-  // Debounced search with caching
+  // Debounced search with caching and incremental results
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -56,60 +58,80 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
 
     if (searchQuery.trim() === '') {
       setSearchResults([]);
+      setFoundInTitles([]);
+      setFoundInContent([]);
       return;
     }
 
-    setIsSearching(true);
-    searchTimeoutRef.current = setTimeout(async () => {
+    const search = async () => {
       const query = searchQuery.toLowerCase();
-      const results: Conversation[] = [];
+      const searchStartTime = Date.now();
+      setIsSearching(true);
+      setFoundInTitles([]);
+      setFoundInContent([]);
       
       // First pass: title search (instant)
       const titleMatches = conversations.filter(conv => 
         conv.title.toLowerCase().includes(query)
       );
-      results.push(...titleMatches);
+      
+      // Show title matches immediately
+      setFoundInTitles(titleMatches);
       
       // Second pass: content search for conversations not already matched
       const remainingConversations = conversations.filter(conv => 
-        !conv.title.toLowerCase().includes(query)
+        !titleMatches.some(match => match.id === conv.id)
       );
       
       // Process in batches to avoid blocking UI
       const batchSize = 5;
+      const contentMatches: Conversation[] = [];
+      
       for (let i = 0; i < remainingConversations.length; i += batchSize) {
         const batch = remainingConversations.slice(i, i + batchSize);
-        
-        await Promise.all(batch.map(async (conv) => {
-          // Check cache first
-          if (searchCache.has(conv.id)) {
-            const cachedData = searchCache.get(conv.id)!;
-            if (searchInContent(cachedData, query)) {
-              results.push(conv);
-            }
-          } else {
-            // Load from API and cache
+        const batchResults = await Promise.all(
+          batch.map(async (conv) => {
             try {
+              // Check cache first
+              if (searchCache.has(conv.id)) {
+                const cachedData = searchCache.get(conv.id)!;
+                return searchInContent(cachedData, query) ? conv : null;
+              }
+              
+              // Load from API if not in cache
               const convData = await loadConversation(conv.id);
               if (convData) {
                 searchCache.set(conv.id, convData);
-                if (searchInContent(convData, query)) {
-                  results.push(conv);
-                }
+                return searchInContent(convData, query) ? conv : null;
               }
+              return null;
             } catch (error) {
-              console.error('Error loading conversation:', error);
+              console.error('Error searching conversation:', error);
+              return null;
             }
-          }
-        }));
+          })
+        );
         
-        // Small delay to allow UI updates
-        await new Promise(resolve => setTimeout(resolve, 0));
+        // Add found conversations to content matches
+        const newMatches = batchResults.filter(Boolean) as Conversation[];
+        if (newMatches.length > 0) {
+          contentMatches.push(...newMatches);
+          setFoundInContent(prev => [...prev, ...newMatches]);
+        }
+        
+        // Small delay to allow UI updates between batches
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
       
-      setSearchResults(results);
+      // Ensure we don't show stale results if the search was cancelled
+      if (Date.now() - searchStartTime < 1000 || searchQuery === '') {
+        return;
+      }
+      
       setIsSearching(false);
-    }, 300); // 300ms debounce
+    };
+    
+    searchTimeoutRef.current = setTimeout(search, 200); // Shorter debounce for better responsiveness
 
     return () => {
       if (searchTimeoutRef.current) {
@@ -117,6 +139,18 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       }
     };
   }, [searchQuery, conversations]);
+  
+  // Combine title and content matches, removing duplicates
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    // Combine results, ensuring no duplicates
+    const combined = [...new Map([...foundInTitles, ...foundInContent].map(item => [item.id, item])).values()];
+    setSearchResults(combined);
+  }, [foundInTitles, foundInContent, searchQuery]);
 
   // Helper function to search in conversation content
   const searchInContent = (convData: ConversationData, query: string): boolean => {
@@ -262,7 +296,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
           </div>
         ) : (
           <>
-            {isSearchOpen && searchQuery && (
+            {searchQuery && (
               <div className="px-3 py-2 text-sm text-white/80">
                 {isSearching ? (
                   <span>Searching...</span>
@@ -272,7 +306,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
               </div>
             )}
             <div className="space-y-1">
-              {(isSearchOpen && searchQuery ? searchResults : conversations).map((conv) => (
+              {(searchQuery ? searchResults : conversations).map((conv) => (
                 <div
                   key={conv.id}
                   onClick={() => handleLoadConversation(conv.id)}
