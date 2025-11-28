@@ -202,9 +202,9 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       {/* User info and logout */}
       <div className="p-4">
         {userEmail && (
-          <div className="mb-3">
-            <p className="text-sm text-gray-600 mb-1 truncate" title={userEmail}>
-              Welcome, {userEmail}
+          <div className="mb-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+            <p className="text-sm text-white/80 mb-2 truncate" title={userEmail}>
+              Welcome, <span className="font-medium text-white">{userEmail}</span>
             </p>
             {userId && <QueryLimitDisplay userId={userId} />}
             {onLogout && (
@@ -212,7 +212,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
                 onClick={onLogout}
                 variant="ghost"
                 size="sm"
-                className="w-full flex items-center gap-2 bg-transparent hover:bg-transparent border-0 hover:text-white/80 text-white/60 transition-colors"
+                className="w-full flex items-center gap-2 justify-start text-white/70 hover:text-white bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 mt-2"
               >
                 <LogOut size={14} />
                 Logout
@@ -220,48 +220,38 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
             )}
           </div>
         )}
-        <Button
-          onClick={handleNewConversation}
-          className="w-full flex items-center gap-2 bg-transparent hover:bg-white/10 text-white/80 hover:text-white border border-white/20 hover:border-white/30 transition-colors"
-          variant="outline"
-        >
-          <Plus size={16} />
-          New Conversation
-        </Button>
-        <Button
-          onClick={handleSearchToggle}
-          variant="ghost"
-          size="sm"
-          className="w-full flex items-center gap-2 mt-2 bg-transparent hover:bg-transparent border-0 hover:text-white/80 text-white/60 transition-colors"
-        >
-          <Search size={16} />
-          {isSearchOpen ? "Hide Search" : "Search Chats"}
-        </Button>
-      </div>
-      
-      {/* Search Input */}
-      {isSearchOpen && (
-        <div className="p-4">
+        
+        {/* Search Input - Always Visible */}
+        <div className="mb-3">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300" />
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 bg-white/20 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white placeholder-gray-300 backdrop-blur-md"
+              className="w-full pl-10 pr-10 py-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white placeholder-white/40"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
               >
                 <X size={16} />
               </button>
             )}
           </div>
         </div>
-      )}
+        
+        <Button
+          onClick={handleNewConversation}
+          className="w-full flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-white/80 hover:text-white transition-all"
+          variant="outline"
+        >
+          <Plus size={16} />
+          New Conversation
+        </Button>
+      </div>
       
       <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
         {loading ? (

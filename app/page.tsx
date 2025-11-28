@@ -37,12 +37,12 @@ function CollapsibleConversationSidebar({
       )}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`fixed top-4 left-4 rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors ${
+        className={`fixed top-4 left-4 rounded-lg p-2 transition-all bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 ${
           isOpen ? 'left-[276px]' : 'left-4'
         }`}
         aria-label={isOpen ? "Hide conversations" : "Show conversations"}
       >
-        <PanelsTopLeft size={20} />
+        <PanelsTopLeft size={20} className="text-white/80 hover:text-white" />
       </button>
     </div>
   );
@@ -311,12 +311,12 @@ export default function Main() {
                 console.error('Error sharing full conversation:', err);
               }
             }}
-            className="rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
+            className="rounded-lg p-2 transition-all flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-white/80 hover:text-white"
             title="Share entire conversation"
           >
             {shareCopied ? (
               <>
-                <Check size={16} className="text-green-600" />
+                <Check size={16} className="text-green-400" />
                 <span className="text-sm">Copied</span>
               </>
             ) : (
@@ -329,15 +329,15 @@ export default function Main() {
       <div className="fixed top-4 left-4 flex gap-2 md:hidden z-40">
         <button
           onClick={() => setIsHistoryOpen(true)}
-          className="rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors"
+          className="rounded-lg p-2 transition-all bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20"
           aria-label="Open conversations"
         >
-          <PanelsTopLeft size={20} />
+          <PanelsTopLeft size={20} className="text-white/80 hover:text-white" />
         </button>
         {isAdmin(userEmail) && (
           <button
             onClick={() => router.push("/admin")}
-            className="rounded-lg border bg-white p-2 shadow-sm hover:bg-gray-100 transition-colors"
+            className="rounded-lg p-2 transition-all bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20"
             aria-label="Admin panel"
           >
             <Settings size={20} />
