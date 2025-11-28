@@ -31,7 +31,7 @@ function CollapsibleConversationSidebar({
   return (
     <div className="hidden md:flex relative">
       {isOpen && (
-        <div className="w-64 h-full overflow-y-auto bg-white border-r border-gray-200">
+        <div className="w-64 h-full overflow-y-auto bg-transparent">
           <ConversationHistory userEmail={userEmail} userId={userId} onLogout={onLogout} publicView={publicView} />
         </div>
       )}

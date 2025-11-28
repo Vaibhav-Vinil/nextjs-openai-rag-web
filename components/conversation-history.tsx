@@ -198,9 +198,9 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
   };
 
   return (
-    <div className="h-full flex flex-col bg-white/30 backdrop-blur-sm border-r">
+    <div className="h-full flex flex-col bg-transparent">
       {/* User info and logout */}
-      <div className="p-4 border-b bg-white">
+      <div className="p-4">
         {userEmail && (
           <div className="mb-3">
             <p className="text-sm text-gray-600 mb-1 truncate" title={userEmail}>
@@ -210,9 +210,9 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
             {onLogout && (
               <Button
                 onClick={onLogout}
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="w-full flex items-center gap-2"
+                className="w-full flex items-center gap-2 bg-transparent hover:bg-transparent border-0 hover:text-white/80 text-white/60 transition-colors"
               >
                 <LogOut size={14} />
                 Logout
@@ -222,17 +222,17 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         )}
         <Button
           onClick={handleNewConversation}
-          className="w-full flex items-center gap-2"
-          variant="default"
+          className="w-full flex items-center gap-2 bg-transparent hover:bg-white/10 text-white/80 hover:text-white border border-white/20 hover:border-white/30 transition-colors"
+          variant="outline"
         >
           <Plus size={16} />
           New Conversation
         </Button>
         <Button
           onClick={handleSearchToggle}
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="w-full flex items-center gap-2 mt-2"
+          className="w-full flex items-center gap-2 mt-2 bg-transparent hover:bg-transparent border-0 hover:text-white/80 text-white/60 transition-colors"
         >
           <Search size={16} />
           {isSearchOpen ? "Hide Search" : "Search Chats"}
@@ -241,15 +241,15 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       
       {/* Search Input */}
       {isSearchOpen && (
-        <div className="p-4 border-b bg-white">
+        <div className="p-4">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-10 py-2 bg-white/20 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white placeholder-gray-300 backdrop-blur-md"
             />
             {searchQuery && (
               <button
@@ -263,7 +263,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         </div>
       )}
       
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
         {loading ? (
           <div className="text-center text-gray-500 py-4">Loading...</div>
         ) : conversations.length === 0 ? (
@@ -273,7 +273,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         ) : (
           <>
             {isSearchOpen && searchQuery && (
-              <div className="px-3 py-2 text-sm text-gray-500 border-b">
+              <div className="px-3 py-2 text-sm text-white/80">
                 {isSearching ? (
                   <span>Searching...</span>
                 ) : (
@@ -286,43 +286,46 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
                 <div
                   key={conv.id}
                   onClick={() => handleLoadConversation(conv.id)}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors group ${
+                  className={`p-3 rounded-xl cursor-pointer transition-all group ${
                     currentConversationId === conv.id
-                      ? "bg-blue-100 border border-blue-300"
-                      : "hover:bg-gray-100 border border-transparent"
+                      ? "bg-blue-500/30 backdrop-blur-md text-white border border-blue-400/30 shadow-md"
+                      : "bg-white/5 backdrop-blur-sm text-white/80 border border-white/5 hover:bg-white/10 hover:border-white/10 hover:backdrop-blur-md hover:shadow-md"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <MessageSquare size={14} className="text-gray-400 flex-shrink-0" />
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                        <h3 className="text-sm font-medium truncate">
                           {conv.title}
                         </h3>
                         {/* TODO: Add shareable indicator if conv.is_publicly_shareable */}
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-white/60">
                         {format(new Date(conv.updated_at), "MMM d, h:mm a")}
                       </p>
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={(e) => handleShareConversation(conv.id, e)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-blue-50 rounded"
+                        className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-blue-500/20 backdrop-blur-sm hover:backdrop-blur-md"
                         title={sharedConversationId === conv.id ? "Link copied!" : "Share conversation"}
                       >
                         {sharedConversationId === conv.id ? (
-                          <Check size={14} className="text-green-600" />
+                          <Check size={14} className="text-green-400" />
                         ) : (
-                          <Share2 size={14} className="text-blue-500" />
+                          <Share2 size={14} className="text-blue-400" />
                         )}
                       </button>
                       <button
-                        onClick={(e) => handleDeleteConversation(conv.id, e)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conv.id, e);
+                        }}
+                        className="text-gray-300 hover:text-white hover:bg-red-500/20 p-1.5 -mr-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm hover:backdrop-blur-md"
                         title="Delete conversation"
                       >
-                        <Trash2 size={14} className="text-red-500" />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>

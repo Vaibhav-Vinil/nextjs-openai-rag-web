@@ -52,7 +52,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
       {message.role === "user" ? (
         <div className="flex justify-end">
           <div>
-            <div className="ml-4 rounded-[16px] px-4 py-2 md:ml-24 bg-[#ededed] text-stone-900  font-light">
+            <div className="ml-4 rounded-2xl px-4 py-3 md:ml-24 bg-white/20 backdrop-blur-lg border border-white/30 text-stone-900 font-light shadow-lg">
               <div>
                 <div>
                   <ReactMarkdown>
@@ -66,7 +66,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
       ) : (
         <div className="flex flex-col group">
           <div className="flex">
-            <div className="mr-4 rounded-[16px] px-4 py-2 md:mr-24 text-black bg-white font-light flex-1">
+            <div className="mr-4 rounded-2xl px-4 py-3 md:mr-24 text-black bg-white/20 backdrop-blur-lg border border-white/30 font-light flex-1 shadow-lg">
               <div>
                 <div className="prose max-w-none">
                   <ReactMarkdown

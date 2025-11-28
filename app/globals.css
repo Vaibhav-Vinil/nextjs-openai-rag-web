@@ -12,7 +12,7 @@ html, body, #__next {
 
 /* Set background image */
 body {
-  background-image: url('/images.jpg');
+  background-image: url('/freepik__upload__17361.jpeg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -26,6 +26,35 @@ body {
   z-index: 1;
   min-height: 100vh;
   background-color: transparent;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.1);
 }
 
 /* Remove any default background colors */
