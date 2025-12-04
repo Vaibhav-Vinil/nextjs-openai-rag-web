@@ -37,7 +37,7 @@ function CollapsibleConversationSidebar({
       )}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`fixed top-4 left-4 rounded-lg p-2 transition-all bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 ${
+        className={`fixed top-4 left-4 rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 ${
           isOpen ? 'left-[276px]' : 'left-4'
         }`}
         aria-label={isOpen ? "Hide conversations" : "Show conversations"}
@@ -315,7 +315,7 @@ export default function Main() {
                 console.error('Error sharing full conversation:', err);
               }
             }}
-            className="rounded-lg p-2 transition-all flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-black"
+            className="rounded-lg p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black"
             title="Share entire conversation"
           >
             {shareCopied ? (
@@ -333,7 +333,7 @@ export default function Main() {
       <div className="fixed top-4 left-4 flex gap-2 md:hidden z-40">
         <button
           onClick={() => setIsHistoryOpen(true)}
-          className="rounded-lg p-2 transition-all bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20"
+          className="rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300"
           aria-label="Open conversations"
         >
           <PanelsTopLeft size={20} className="text-black hover:text-black/80" />
@@ -341,7 +341,7 @@ export default function Main() {
         {isAdmin(userEmail) && (
           <button
             onClick={() => router.push("/admin")}
-            className="rounded-lg p-2 transition-all bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20"
+            className="rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300"
             aria-label="Admin panel"
           >
             <Settings size={20} />
@@ -352,15 +352,15 @@ export default function Main() {
       {/* Mobile conversation history */}
       {isHistoryOpen && (
         <div className="fixed inset-0 z-50 flex">
-          <div className="w-full max-w-xs h-full bg-white shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-sm font-semibold text-gray-700">Conversations</h2>
+          <div className="w-full max-w-xs h-full bg-[#eef0f5] shadow-2xl flex flex-col text-black">
+            <div className="flex items-center justify-between p-4 border-b border-black/10">
+              <h2 className="text-sm font-semibold">Conversations</h2>
               <button
                 onClick={() => setIsHistoryOpen(false)}
-                className="rounded-full p-2 hover:bg-gray-100"
+                className="rounded-full p-2 hover:bg-black/5"
                 aria-label="Close conversations"
               >
-                <X size={18} />
+                <X size={18} className="text-black" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">

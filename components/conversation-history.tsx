@@ -238,21 +238,23 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
               />
             </div>
             <div className="px-3 pb-3">
-              <p className="text-sm text-white/80 truncate text-center" title={userEmail}>
-                Welcome, <span className="font-medium text-white">{userEmail}</span>
+              <p className="text-sm text-black truncate text-center" title={userEmail}>
+                Welcome, <span className="font-medium text-black">{userEmail}</span>
               </p>
             </div>
             {userId && <QueryLimitDisplay />}
             {onLogout && (
-              <Button
-                onClick={onLogout}
-                variant="ghost"
-                size="sm"
-                className="w-full flex items-center gap-2 justify-start text-white/70 hover:text-white bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 mt-2"
-              >
-                <LogOut size={14} />
-                Logout
-              </Button>
+              <div className="px-3 pb-3">
+                <Button
+                  onClick={onLogout}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full flex items-center justify-center gap-2 text-black/80 hover:text-black bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 mt-2"
+                >
+                  <LogOut size={14} />
+                  Logout
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -273,7 +275,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-black/40 hover:text-black/80 transition-colors"
               >
                 <X size={16} />
               </button>
@@ -283,7 +285,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         
         <Button
           onClick={handleNewConversation}
-          className="w-full flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-white/80 hover:text-white transition-all"
+          className="w-full flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-black/80 hover:text-black transition-all"
           variant="outline"
         >
           <Plus size={16} />
@@ -293,9 +295,9 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       
       <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
         {loading ? (
-          <div className="text-center text-gray-500 py-4">Loading...</div>
+          <div className="text-center text-gray-700 py-4">Loading...</div>
         ) : conversations.length === 0 ? (
-          <div className="text-center text-gray-500 py-4">
+          <div className="text-center text-gray-700 py-4">
             No conversations yet
           </div>
         ) : (
@@ -316,27 +318,27 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
                   onClick={() => handleLoadConversation(conv.id)}
                   className={`p-3 rounded-xl cursor-pointer transition-all group ${
                     currentConversationId === conv.id
-                      ? "bg-blue-500/30 backdrop-blur-md text-white border border-blue-400/30 shadow-md"
-                      : "bg-white/5 backdrop-blur-sm text-white/80 border border-white/5 hover:bg-white/10 hover:border-white/10 hover:backdrop-blur-md hover:shadow-md"
+                      ? "bg-blue-500/30 backdrop-blur-md text-black border border-blue-400/30 shadow-md"
+                      : "bg-white/5 backdrop-blur-sm text-black/80 border border-white/5 hover:bg-white/10 hover:border-white/10 hover:backdrop-blur-md hover:shadow-md"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <MessageSquare size={14} className="text-gray-400 flex-shrink-0" />
+                        <MessageSquare size={14} className="text-gray-600 flex-shrink-0" />
                         <h3 className="text-sm font-medium truncate">
                           {conv.title}
                         </h3>
                         {/* TODO: Add shareable indicator if conv.is_publicly_shareable */}
                       </div>
-                      <p className="text-xs text-white/60">
+                      <p className="text-xs text-gray-700">
                         {format(new Date(conv.updated_at), "MMM d, h:mm a")}
                       </p>
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={(e) => handleShareConversation(conv.id, e)}
-                        className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-blue-500/20 backdrop-blur-sm hover:backdrop-blur-md"
+                        className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-blue-500/20 backdrop-blur-sm hover:backdrop-blur-md text-black"
                         title={sharedConversationId === conv.id ? "Link copied!" : "Share conversation"}
                       >
                         {sharedConversationId === conv.id ? (
@@ -350,7 +352,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
                           e.stopPropagation();
                           handleDeleteConversation(conv.id, e);
                         }}
-                        className="text-gray-300 hover:text-white hover:bg-red-500/20 p-1.5 -mr-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm hover:backdrop-blur-md"
+                        className="text-gray-600 hover:text-black hover:bg-red-500/20 p-1.5 -mr-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm hover:backdrop-blur-md"
                         title="Delete conversation"
                       >
                         <Trash2 size={14} />
