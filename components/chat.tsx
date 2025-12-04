@@ -44,6 +44,7 @@ const Chat: React.FC<ChatProps> = ({
   const router = useRouter();
   const supabase = createClient();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const sendMessage = useCallback(async () => {
     if (!inputMessageText.trim()) return;
@@ -92,6 +93,19 @@ const Chat: React.FC<ChatProps> = ({
     [sendMessage, isComposing]
   );
 
+  // Handle scroll events for fade effect
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setIsScrolled(container.scrollTop > 10);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Only auto-scroll if new items were added (not on initial mount or when loading old conversation)
   useEffect(() => {
     // Skip scroll on initial mount
@@ -117,10 +131,19 @@ const Chat: React.FC<ChatProps> = ({
       <div className="flex grow flex-col h-full w-full max-w-3xl min-w-0">
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-10 py-6 flex flex-col min-h-0 relative"
+          className={`flex-1 overflow-y-auto px-4 sm:px-6 md:px-10 ${hasUserSentMessage ? 'pt-2' : 'pt-6'} pb-6 flex flex-col min-h-0 relative`}
+          style={{
+            maskImage: isScrolled 
+              ? 'linear-gradient(to bottom, transparent 0%, black 2rem, black 100%)' 
+              : 'none',
+            WebkitMaskImage: isScrolled 
+              ? 'linear-gradient(to bottom, transparent 0%, black 2rem, black 100%)' 
+              : 'none',
+          }}
         >
           {isConversationLoading && <ConversationLoading />}
           <div className="flex-1 flex flex-col justify-end">
+            {/* Initial centered logo */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {!hasUserSentMessage && !isAssistantLoading && !isConversationLoading && (
                 <div className="w-full flex justify-center">

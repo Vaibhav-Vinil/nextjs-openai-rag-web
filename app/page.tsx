@@ -14,13 +14,22 @@ function CollapsibleConversationSidebar({
   userId,
   onLogout,
   publicView,
+  onOpenChange,
 }: {
   userEmail: string;
   userId: string;
   onLogout: () => void;
   publicView?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Notify parent component when sidebar state changes
+  useEffect(() => {
+    if (onOpenChange) {
+      onOpenChange(isOpen);
+    }
+  }, [isOpen, onOpenChange]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth >= 1024) {
@@ -54,6 +63,16 @@ export default function Main() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [hasUserSentMessage, setHasUserSentMessage] = useState(false);
+  
+  // Track if user has sent any messages
+  useEffect(() => {
+    const state = useConversationStore.getState();
+    const hasMessages = state.conversationItems.some(item => item.role === 'user');
+    setHasUserSentMessage(hasMessages);
+  }, [useConversationStore.getState().conversationItems]);
+  
   // Detect if we're viewing a public/shared conversation via URL params
   const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   // Consider both full conversation shares and single-response snippet shares public
@@ -293,6 +312,19 @@ export default function Main() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-transparent">
+      {/* Top-center logo (desktop) - Only show if chat has messages */}
+      {hasUserSentMessage && (
+        <div className={`fixed top-4 hidden md:flex items-center justify-center z-40 ${
+          isSidebarOpen ? 'left-[calc(50%+128px)]' : 'left-1/2'
+        } -translate-x-1/2`}>
+          <img 
+            src="/PvChatbot-logo.png" 
+            alt="PV Chatbot Logo" 
+            className="h-8 w-auto opacity-80 object-contain"
+          />
+        </div>
+      )}
+
       {/* Top-right controls: Share whole chat (desktop) */}
       <div className="fixed top-4 right-4 hidden md:flex items-center gap-2 z-40">
         {/* Show full-chat share button only when authenticated and a conversation is loaded */}
@@ -382,7 +414,13 @@ export default function Main() {
       )}
 
       {/* Conversation History Sidebar (hidden for public/shared views) */}
-      <CollapsibleConversationSidebar userEmail={userEmail} userId={userId} onLogout={handleLogout} publicView={isPublicView} />
+      <CollapsibleConversationSidebar 
+        userEmail={userEmail} 
+        userId={userId} 
+        onLogout={handleLogout} 
+        publicView={isPublicView}
+        onOpenChange={setIsSidebarOpen}
+      />
 
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex min-h-0">

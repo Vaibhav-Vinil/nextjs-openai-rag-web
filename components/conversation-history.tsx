@@ -229,15 +229,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       <div className="p-4">
         {userEmail && (
           <div className="mb-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
-            <div className="flex justify-center w-full">
-              <img 
-                src="/PvChatbot-logo.png" 
-                alt="PV Chatbot Logo" 
-                className="w-24 h-24 object-contain p-1"
-                style={{ maxWidth: '100%', height: 'auto' }}
-              />
-            </div>
-            <div className="px-3 pb-3">
+            <div className="px-3 pb-3 pt-3">
               <p className="text-sm text-black truncate text-center" title={userEmail}>
                 Welcome, <span className="font-medium text-black">{userEmail}</span>
               </p>
