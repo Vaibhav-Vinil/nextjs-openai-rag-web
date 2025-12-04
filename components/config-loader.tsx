@@ -74,6 +74,7 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
     setWebSearchConfig,
     setMcpConfig,
     setVectorStore,
+    publicView
   ]);
 
   return <>{children}</>;

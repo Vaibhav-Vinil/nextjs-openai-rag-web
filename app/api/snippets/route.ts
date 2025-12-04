@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('snippets')
       .insert([
         {

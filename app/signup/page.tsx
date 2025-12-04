@@ -65,8 +65,10 @@ export default function SignUpPage() {
           router.push("/login");
         }, 3000);
       }
-    } catch (err) {
+    } catch (error) {
       setError("An error occurred. Please try again.");
+      console.error("Signup error:", error);
+      setLoading(false);
     } finally {
       setLoading(false);
     }

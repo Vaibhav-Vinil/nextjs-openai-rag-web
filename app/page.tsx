@@ -101,7 +101,7 @@ export default function Main() {
     });
 
     return () => subscription.unsubscribe();
-  }, [router, supabase]);
+  }, [isPublicView, router, supabase]);
 
   // After OAuth redirect, reinitialize the conversation so the next turn
   // uses the connector-enabled server configuration immediately
@@ -149,7 +149,7 @@ export default function Main() {
           try {
             const newUrl = window.location.pathname + window.location.hash;
             window.history.replaceState({}, "", newUrl);
-          } catch (e) {
+          } catch {
             router.replace("/", { scroll: false });
           }
         } else {
@@ -167,13 +167,13 @@ export default function Main() {
         const safeDecode = (value: string) => {
           try {
             return decodeURIComponent(value);
-          } catch (e) {
+          } catch {
             // Sometimes URLs are malformed (lone '%' or '+' for spaces). Try sanitizing.
             try {
               const replacedPlus = value.replace(/\+/g, "%20");
               const sanitized = replacedPlus.replace(/%(?![0-9A-Fa-f]{2})/g, "%25");
               return decodeURIComponent(sanitized);
-            } catch (e2) {
+            } catch {
               // As a last resort, return the raw value so the UI shows something instead of crashing.
               return value;
             }
@@ -198,7 +198,7 @@ export default function Main() {
         try {
           const newUrl = window.location.pathname + window.location.hash;
           window.history.replaceState({}, "", newUrl);
-        } catch (e) {
+        } catch {
           // Fallback to router.replace if history API is unavailable
           router.replace("/", { scroll: false });
         }
@@ -261,7 +261,7 @@ export default function Main() {
       // Keep the `conv` URL params intact so the shared link persists
       // in the address bar instead of navigating back to the base URL.
     }
-  }, [router]);
+  }, [router, isPublicView]);
 
   const handleLogout = async () => {
     try {

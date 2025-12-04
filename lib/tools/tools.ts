@@ -7,12 +7,13 @@ interface WebSearchTool extends WebSearchConfig {
   type: "web_search";
 }
 
-type GetToolsOptions = {
-  // No more domain overrides needed
-};
+interface GetToolsOptions {
+  overrideAllowedDomains?: string[];
+}
 
 export const getTools = async (
   toolsState: ToolsState,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _options?: GetToolsOptions
 ) => {
   const {

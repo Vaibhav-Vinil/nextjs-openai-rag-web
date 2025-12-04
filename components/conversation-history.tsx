@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, MessageSquare, LogOut, Search, X, Share2, Check } from "lucide-react";
+import { Plus, MessageSquare, LogOut, X, Check, Search, Trash2, Share2 } from "lucide-react";
 import QueryLimitDisplay from "./query-limit-display";
 import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
@@ -19,7 +19,6 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { currentConversationId, resetConversation, loadConversation: loadConv, setCurrentConversationId, setConversationLoading } = useConversationStore();
 
   const fetchConversations = async () => {
@@ -43,10 +42,10 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
     }, [publicView, userEmail]);
 
   // Search state with caching
-  const [searchCache, setSearchCache] = useState<Map<string, ConversationData>>(new Map());
   const [searchResults, setSearchResults] = useState<Conversation[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const [searchCache] = useState<Map<string, ConversationData>>(new Map());
   const [foundInTitles, setFoundInTitles] = useState<Conversation[]>([]);
   const [foundInContent, setFoundInContent] = useState<Conversation[]>([]);
 
@@ -138,7 +137,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, conversations]);
+  }, [searchQuery, conversations, searchCache]);
   
   // Combine title and content matches, removing duplicates
   useEffect(() => {
@@ -166,13 +165,6 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       }
       return false;
     });
-  };
-
-  const handleSearchToggle = () => {
-    setIsSearchOpen(!isSearchOpen);
-    if (isSearchOpen) {
-      setSearchQuery("");
-    }
   };
 
   const handleNewConversation = () => {
@@ -240,7 +232,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
             <p className="text-sm text-white/80 mb-2 truncate" title={userEmail}>
               Welcome, <span className="font-medium text-white">{userEmail}</span>
             </p>
-            {userId && <QueryLimitDisplay userId={userId} />}
+            {userId && <QueryLimitDisplay />}
             {onLogout && (
               <Button
                 onClick={onLogout}

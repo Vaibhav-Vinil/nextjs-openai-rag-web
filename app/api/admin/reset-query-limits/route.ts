@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/config/admin-emails";
 
-export async function POST(request: Request) {
+export async function POST() {
   console.log('Starting reset-query-limits request');
   
   try {

@@ -42,8 +42,9 @@ export default function LoginPage() {
         router.push("/");
         router.refresh();
       }
-    } catch (err) {
+    } catch (error) {
       setError("An error occurred. Please try again.");
+      console.error("Login error:", error);
     } finally {
       setLoading(false);
     }
@@ -92,12 +93,12 @@ export default function LoginPage() {
           >
             {loading ? "Logging in..." : "Login"}
           </Button>
-          <div className="text-center text-sm text-gray-600">
-            Don't have an account?{" "}
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-blue-600 hover:underline">
               Sign up
             </Link>
-          </div>
+          </p>
         </form>
       </div>
     </div>

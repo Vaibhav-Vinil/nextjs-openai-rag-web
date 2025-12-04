@@ -1,22 +1,13 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import ConfigLoader from "@/components/config-loader";
-import ConversationHistory from "@/components/conversation-history";
-import Assistant from "@/components/assistant";
+import React, { useEffect, useState, use } from "react";
 import useConversationStore from "@/stores/useConversationStore";
+import ConversationHistory from "@/components/conversation-history";
+import ConfigLoader from "@/components/config-loader";
+import Assistant from "@/components/assistant";
 
-interface SnippetData {
-  id: string;
-  content: string;
-}
-
-export default function ShareSnippetPage({ params }: { params: { id: string } } | { params: Promise<{ id: string }> }) {
-  // In newer Next.js versions `params` may be a Promise and should be
-  // unwrapped with `React.use()` in client components. Use a safe
-  // fallback for older runtimes that don't provide `React.use` yet.
-  const resolvedParams = (React as any).use ? (React as any).use(params) : params as any;
-  const { id } = resolvedParams as { id: string };
+export default function ShareSnippetPage({ params }: { params: Promise<{ id: string }> }) {
+  // In Next.js 15, `params` is a Promise and should be unwrapped with `use()` in client components
+  const { id } = use(params);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { loadConversation, setCurrentConversationId } = useConversationStore();

@@ -2,14 +2,17 @@ import { parse } from "partial-json";
 import { handleTool } from "@/lib/tools/tools-handling";
 import useConversationStore from "@/stores/useConversationStore";
 import useToolsStore, { ToolsState } from "@/stores/useToolsStore";
-import { Annotation } from "@/components/annotations";
 import { functionsMap } from "@/config/functions";
 
-const normalizeAnnotation = (annotation: any): Annotation => ({
-  ...annotation,
-  fileId: annotation.file_id ?? annotation.fileId,
-  containerId: annotation.container_id ?? annotation.containerId,
-});
+type Annotation = {
+  type: "file_citation" | "url_citation" | "container_file_citation";
+  fileId?: string;
+  containerId?: string;
+  url?: string;
+  title?: string;
+  filename?: string;
+  index?: number;
+};
 
 export interface ContentItem {
   type: "input_text" | "output_text" | "refusal" | "output_audio";
@@ -206,7 +209,7 @@ export const processMessages = async () => {
         }
         case "response.output_text.delta":
         case "response.output_text.annotation.added": {
-          const { delta, item_id, annotation } = data;
+          const { delta, item_id } = data;
 
           let partial = "";
           if (typeof delta === "string") {

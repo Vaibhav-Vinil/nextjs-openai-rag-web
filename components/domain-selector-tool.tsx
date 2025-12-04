@@ -5,12 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Search, Brain, Globe, Filter, Settings, Play, CheckCircle, AlertCircle } from "lucide-react";
-import useToolsStore from "@/stores/useToolsStore";
+import { Brain, Globe, Settings, Play } from "lucide-react";
 
 interface Domain {
   id: string;
@@ -274,7 +271,7 @@ export default function DomainSelectorTool() {
             <Switch
               id="semantic_search"
               checked={config.enable_semantic_search}
-              onCheckedChange={(checked) => setConfig(prev => ({ ...prev, enable_semantic_search: checked }))}
+              onCheckedChange={(checked: boolean) => setConfig(prev => ({ ...prev, enable_semantic_search: checked }))}
             />
             <Label htmlFor="semantic_search">Enable Semantic Search</Label>
           </div>

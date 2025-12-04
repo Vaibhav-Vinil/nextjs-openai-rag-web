@@ -5,13 +5,13 @@ import { z } from "zod";
 const manageDomainsSchema = z.object({
   action: z.enum(["add", "remove", "list", "clear"]),
   domain: z.string().optional(),
-  domains: z.array(z.string()).optional(),
+  _domains: z.array(z.string()).optional(),
 });
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, domain, domains } = manageDomainsSchema.parse(body);
+    const { action, domain } = manageDomainsSchema.parse(body);
 
     const supabase = await createClient();
 
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   // Handle GET request for listing domains
   try {
     const supabase = await createClient();

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/config/admin-emails";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -62,13 +62,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert configuration
-    const { data: config, error } = await supabase
+    const { data, error } = await supabase
       .from("admin_config")
       .upsert({
         key,
         value,
         description: description || null,
-        updated_by: session.user.id
+        updated_by: user.id
       })
       .select()
       .single();
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update configuration" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, config });
+    return NextResponse.json({ success: true, config: data });
   } catch (error) {
     console.error("Error in admin config POST:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

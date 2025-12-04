@@ -42,7 +42,7 @@ export default function Assistant() {
           // No authenticated session — skip saving for anonymous users.
           return;
         }
-      } catch (err) {
+      } catch {
         // If the auth check fails for any reason, don't attempt to save to avoid 401 noise.
         return;
       }

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 // GET: Get a specific conversation
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -53,7 +53,7 @@ export async function GET(
 // PUT: Update a conversation
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -111,7 +111,7 @@ export async function PUT(
 // DELETE: Delete a conversation
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();

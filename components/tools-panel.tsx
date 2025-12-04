@@ -92,7 +92,7 @@ export default function ToolsPanel() {
   // Save configuration to admin API whenever any tool setting changes
   const saveConfig = React.useCallback(async () => {
     // First, get the current config from the server to preserve existing values
-    let currentConfig = {};
+    let currentConfig: any = {};
     try {
       const response = await fetch("/api/admin/config");
       if (response.ok) {
@@ -115,7 +115,7 @@ export default function ToolsPanel() {
         ...webSearchConfig,  // Apply local changes
         filters: {
           ...(currentConfig.web_search_config?.filters || {}),  // Keep existing filters
-          ...(webSearchConfig.filters || {}),  // Apply local filter changes
+          ...((webSearchConfig as any).filters || {}),  // Apply local filter changes
         },
       },
       mcp_config: {
