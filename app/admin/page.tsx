@@ -54,7 +54,8 @@ export default function AdminPage() {
       } else {
         setIsAuthenticated(false);
         setUserEmail("");
-        router.push("/login");
+        // Use window.location for immediate redirect to avoid blank page
+        window.location.href = "/login";
       }
     });
 
@@ -62,8 +63,15 @@ export default function AdminPage() {
   }, [router, supabase]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
+    try {
+      await supabase.auth.signOut();
+      // Use window.location for immediate redirect to avoid blank page
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Even if signOut fails, redirect to login page
+      window.location.href = "/login";
+    }
   };
 
   if (isAuthenticated === null || isAdminUser === false) {

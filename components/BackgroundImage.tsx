@@ -3,11 +3,7 @@
 import { CSSProperties, useEffect } from 'react';
 
 const backgroundStyles: CSSProperties = {
-  backgroundImage: 'url(/images.jpg)',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  backgroundAttachment: 'fixed',
+  backgroundColor: '#2596be',
   position: 'fixed',
   top: 0,
   left: 0,
@@ -15,8 +11,7 @@ const backgroundStyles: CSSProperties = {
   bottom: 0,
   width: '100vw',
   height: '100vh',
-  zIndex: -1,
-  opacity: 0.6
+  zIndex: -1
 };
 
 const overlayStyles: CSSProperties = {
@@ -25,8 +20,8 @@ const overlayStyles: CSSProperties = {
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-  backdropFilter: 'blur(4px)',
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  backdropFilter: 'blur(2px)',
   zIndex: -1
 };
 

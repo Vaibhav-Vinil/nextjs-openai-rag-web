@@ -228,10 +228,20 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       {/* User info and logout */}
       <div className="p-4">
         {userEmail && (
-          <div className="mb-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-            <p className="text-sm text-white/80 mb-2 truncate" title={userEmail}>
-              Welcome, <span className="font-medium text-white">{userEmail}</span>
-            </p>
+          <div className="mb-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
+            <div className="flex justify-center w-full">
+              <img 
+                src="/PvChatbot-logo.png" 
+                alt="PV Chatbot Logo" 
+                className="w-24 h-24 object-contain p-1"
+                style={{ maxWidth: '100%', height: 'auto' }}
+              />
+            </div>
+            <div className="px-3 pb-3">
+              <p className="text-sm text-white/80 truncate text-center" title={userEmail}>
+                Welcome, <span className="font-medium text-white">{userEmail}</span>
+              </p>
+            </div>
             {userId && <QueryLimitDisplay />}
             {onLogout && (
               <Button
@@ -250,13 +260,15 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         {/* Search Input - Always Visible */}
         <div className="mb-3">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full z-10">
+              <Search size={14} className="text-white" />
+            </div>
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white placeholder-white/40"
+              className="w-full pl-10 pr-10 py-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-black placeholder-gray-600"
             />
             {searchQuery && (
               <button

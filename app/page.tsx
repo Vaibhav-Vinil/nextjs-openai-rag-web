@@ -42,7 +42,7 @@ function CollapsibleConversationSidebar({
         }`}
         aria-label={isOpen ? "Hide conversations" : "Show conversations"}
       >
-        <PanelsTopLeft size={20} className="text-white/80 hover:text-white" />
+        <PanelsTopLeft size={20} className="text-black hover:text-black/80" />
       </button>
     </div>
   );
@@ -75,7 +75,8 @@ export default function Main() {
         // If this is a public/shared conversation view, don't force a login redirect.
         setIsAuthenticated(false);
         if (!isPublicView) {
-          router.push("/login");
+          // Use window.location for immediate redirect to avoid blank page
+          window.location.href = "/login";
         }
       }
     };
@@ -95,7 +96,8 @@ export default function Main() {
         setIsAuthenticated(false);
         setUserId("");
         if (!isPublicView) {
-          router.push("/login");
+          // Use window.location for immediate redirect to avoid blank page
+          window.location.href = "/login";
         }
       }
     });
@@ -266,10 +268,12 @@ export default function Main() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      router.push("/login");
-      router.refresh();
+      // Use window.location for immediate redirect to avoid blank page
+      window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed:", error);
+      // Even if signOut fails, redirect to login page
+      window.location.href = "/login";
     }
   };
 
@@ -311,12 +315,12 @@ export default function Main() {
                 console.error('Error sharing full conversation:', err);
               }
             }}
-            className="rounded-lg p-2 transition-all flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-white/80 hover:text-white"
+            className="rounded-lg p-2 transition-all flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-black"
             title="Share entire conversation"
           >
             {shareCopied ? (
               <>
-                <Check size={16} className="text-green-400" />
+                <Check size={16} className="text-green-600" />
                 <span className="text-sm">Copied</span>
               </>
             ) : (
@@ -332,7 +336,7 @@ export default function Main() {
           className="rounded-lg p-2 transition-all bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20"
           aria-label="Open conversations"
         >
-          <PanelsTopLeft size={20} className="text-white/80 hover:text-white" />
+          <PanelsTopLeft size={20} className="text-black hover:text-black/80" />
         </button>
         {isAdmin(userEmail) && (
           <button

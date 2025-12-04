@@ -33,6 +33,7 @@ const Chat: React.FC<ChatProps> = ({
   const { isAssistantLoading, isConversationLoading } = useConversationStore();
   const previousItemsLengthRef = useRef<number>(0);
   const isInitialMountRef = useRef<boolean>(true);
+  const hasUserSentMessage = items.some(item => item.type === "message" && item.role === "user");
 
   const scrollToBottom = (smooth = false) => {
     if (itemsEndRef.current && scrollContainerRef.current) {
@@ -120,6 +121,17 @@ const Chat: React.FC<ChatProps> = ({
         >
           {isConversationLoading && <ConversationLoading />}
           <div className="flex-1 flex flex-col justify-end">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {!hasUserSentMessage && !isAssistantLoading && !isConversationLoading && (
+                <div className="w-full flex justify-center">
+                  <img 
+                    src="/PvChatbot-logo.png" 
+                    alt="PV Chatbot Logo" 
+                    className="w-62 h-48 opacity-62 object-contain"
+                  />
+                </div>
+              )}
+            </div>
             <div className="space-y-5">
               {items.map((item, index) => (
                 <React.Fragment key={getItemKey(item, index)}>
