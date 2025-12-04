@@ -38,21 +38,37 @@ function CollapsibleConversationSidebar({
   }, []);
 
   return (
-    <div className="hidden md:flex relative">
-      {isOpen && (
-        <div className="w-64 h-full overflow-y-auto bg-transparent">
+    <div className="flex relative">
+      {/* Sidebar */}
+      <div 
+        className={`fixed md:relative z-30 h-full transition-all duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0'
+        } w-64 bg-[#f8fafc]`}
+      >
+        <div className="h-full overflow-y-auto">
           <ConversationHistory userEmail={userEmail} userId={userId} onLogout={onLogout} publicView={publicView} />
         </div>
-      )}
+      </div>
+      
+      {/* Toggle Button - Visible on all screens */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`fixed top-4 left-4 rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 ${
-          isOpen ? 'left-[276px]' : 'left-4'
+        className={`fixed z-40 top-4 left-4 rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 ${
+          isOpen ? 'md:left-[276px]' : 'left-4'
         }`}
         aria-label={isOpen ? "Hide conversations" : "Show conversations"}
       >
         <PanelsTopLeft size={20} className="text-black hover:text-black/80" />
       </button>
+      
+      {/* Overlay for mobile - only show when sidebar is open on mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 md:hidden z-20"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 }
@@ -325,60 +341,66 @@ export default function Main() {
         </div>
       )}
 
-      {/* Top-right controls: Share whole chat (desktop) */}
-      <div className="fixed top-4 right-4 hidden md:flex items-center gap-2 z-40">
+      {/* Top-right controls */}
+      <div className="fixed top-4 right-4 flex flex-col items-end gap-2 z-40">
         {/* Show full-chat share button only when authenticated and a conversation is loaded */}
         {isAuthenticated && (
-          <button
-            onClick={async () => {
-              try {
-                const state = useConversationStore.getState();
-                const convId = state.currentConversationId;
-                if (!convId) return;
-                // Mark conversation as publicly shareable
-                const res = await fetch(`/api/conversations/${convId}/share`, { method: 'POST' });
-                if (!res.ok) throw new Error('Failed to mark conversation public');
-                const shareUrl = `${window.location.origin}?conv=${convId}&public=true`;
-                await navigator.clipboard.writeText(shareUrl);
-                // Visual feedback: show copied state for 2s
-                setShareCopied(true);
-                setTimeout(() => setShareCopied(false), 2000);
-              } catch (err) {
-                console.error('Error sharing full conversation:', err);
-              }
-            }}
-            className="rounded-lg p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black"
-            title="Share entire conversation"
-          >
-            {shareCopied ? (
-              <>
-                <Check size={16} className="text-green-600" />
-                <span className="text-sm">Copied</span>
-              </>
-            ) : (
-              <span className="text-sm">Share</span>
+          <div className="flex flex-col items-end gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  const state = useConversationStore.getState();
+                  const convId = state.currentConversationId;
+                  if (!convId) return;
+                  // Mark conversation as publicly shareable
+                  const res = await fetch(`/api/conversations/${convId}/share`, { method: 'POST' });
+                  if (!res.ok) throw new Error('Failed to mark conversation public');
+                  const shareUrl = `${window.location.origin}?conv=${convId}&public=true`;
+                  await navigator.clipboard.writeText(shareUrl);
+                  // Visual feedback: show copied state for 2s
+                  setShareCopied(true);
+                  setTimeout(() => setShareCopied(false), 2000);
+                } catch (err) {
+                  console.error('Error sharing full conversation:', err);
+                }
+              }}
+              className="rounded-lg p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black"
+              title="Share entire conversation"
+            >
+              {shareCopied ? (
+                <>
+                  <Check size={16} className="text-green-600" />
+                  <span className="text-sm">Copied</span>
+                </>
+              ) : (
+                <span className="text-sm">Share</span>
+              )}
+            </button>
+            
+            {/* Admin button - only shown to admin users */}
+            {isAdmin(userEmail) && (
+              <button
+                onClick={() => router.push("/admin")}
+                className="w-full rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 flex items-center justify-center gap-2"
+                aria-label="Admin panel"
+                title="Admin Panel"
+              >
+                <Settings size={16} />
+                <span className="text-sm">Admin</span>
+              </button>
             )}
-          </button>
+          </div>
         )}
       </div>
-      {/* Mobile top controls */}
-      <div className="fixed top-4 left-4 flex gap-2 md:hidden z-40">
+      {/* Mobile menu button */}
+      <div className="fixed top-4 left-4 z-40">
         <button
           onClick={() => setIsHistoryOpen(true)}
-          className="rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300"
+          className="md:hidden rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300"
           aria-label="Open conversations"
         >
           <PanelsTopLeft size={20} className="text-black hover:text-black/80" />
         </button>
-        {isAdmin(userEmail) && (
-          <button
-            onClick={() => router.push("/admin")}
-            className="rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300"
-            aria-label="Admin panel"
-          >
-            <Settings size={20} />
-          </button>
-        )}
       </div>
 
       {/* Mobile conversation history */}

@@ -241,7 +241,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
                   onClick={onLogout}
                   variant="ghost"
                   size="sm"
-                  className="w-full flex items-center justify-center gap-2 text-black/80 hover:text-black bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 mt-2"
+                  className="w-full flex items-center justify-center gap-2 text-black/80 hover:text-black bg-black/5 backdrop-blur-sm border border-black/10 hover:bg-black/10 hover:border-black/20 mt-2 transition-colors"
                 >
                   <LogOut size={14} />
                   Logout
@@ -262,7 +262,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-black placeholder-gray-600"
+              className="w-full pl-10 pr-10 py-2 bg-black/5 backdrop-blur-sm border border-black/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-transparent text-black placeholder-gray-500"
             />
             {searchQuery && (
               <button
@@ -277,7 +277,7 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         
         <Button
           onClick={handleNewConversation}
-          className="w-full flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 text-black/80 hover:text-black transition-all"
+          className="w-full flex items-center gap-2 bg-black/5 backdrop-blur-sm border border-black/10 hover:bg-black/10 hover:border-black/20 text-black/80 hover:text-black transition-all"
           variant="outline"
         >
           <Plus size={16} />
