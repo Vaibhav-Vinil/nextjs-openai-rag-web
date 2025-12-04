@@ -328,19 +328,6 @@ export default function Main() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-transparent">
-      {/* Top-center logo (desktop) - Only show if chat has messages */}
-      {hasUserSentMessage && (
-        <div className={`fixed top-4 hidden md:flex items-center justify-center z-40 ${
-          isSidebarOpen ? 'left-[calc(50%+128px)]' : 'left-1/2'
-        } -translate-x-1/2`}>
-          <img 
-            src="/PvChatbot-logo.png" 
-            alt="PV Chatbot Logo" 
-            className="h-8 w-auto opacity-80 object-contain"
-          />
-        </div>
-      )}
-
       {/* Top-right controls */}
       <div className="fixed top-4 right-4 flex flex-col items-end gap-2 z-40">
         {/* Show full-chat share button only when authenticated and a conversation is loaded */}

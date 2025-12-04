@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare, LogOut, X, Check, Search, Trash2, Share2 } from "lucide-react";
+import Image from "next/image";
 import QueryLimitDisplay from "./query-limit-display";
 import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
@@ -229,7 +230,17 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
       <div className="p-4">
         {userEmail && (
           <div className="mb-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
-            <div className="px-3 pb-3 pt-3">
+            <div className="flex flex-col items-center px-3 pt-1 pb-3">
+              <div className="w-72 h-auto relative">
+                <Image 
+                  src="/PvChatbot-logo.png" 
+                  alt="pvAI Logo"
+                  width={288}
+                  height={144}
+                  style={{ objectFit: 'contain', width: '100%', height: 'auto' }}
+                  priority
+                />
+              </div>
               <p className="text-sm text-black truncate text-center" title={userEmail}>
                 Welcome, <span className="font-medium text-black">{userEmail}</span>
               </p>
