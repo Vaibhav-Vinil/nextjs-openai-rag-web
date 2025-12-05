@@ -1,24 +1,22 @@
-# Responses starter app
+# pvAI - Solar Energy Assistant
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![NextJS](https://img.shields.io/badge/Built_with-NextJS-blue)
 ![OpenAI API](https://img.shields.io/badge/Powered_by-OpenAI_API-orange)
+[![pvAI Logo](https://img.shields.io/badge/pvAI-Solar_Assistant-blue)](https://pv.market)
 
-This repository contains a NextJS starter app built on top of the [Responses API](https://platform.openai.com/docs/api-reference/responses).
-It leverages built-in tools ([web search](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses) and [file search](https://platform.openai.com/docs/guides/tools-file-search)) and implements a chat interface with multi-turn conversation handling.
+pvAI is a specialized AI assistant for the solar energy industry, built on Next.js and powered by OpenAI's API. It provides intelligent responses to solar energy-related queries, product information, and technical support.
 
-Features:
+## Features
 
-- Multi-turn conversation handling
-- Streaming responses & tool calls
-- Function calling
-- Display annotations
-- Web search tool configuration
-- Vector store creation & file upload for use with the file search tool
-- MCP server configuration
-- Google Calendar & Gmail integration via first-party connector
-
-This app is meant to be used as a starting point to build a conversational assistant that you can customize to your needs.
+- **Solar Energy Expertise**: Specialized in solar panels, inverters, batteries, and renewable energy topics
+- **Multi-turn Conversations**: Maintains context for natural, flowing discussions
+- **Real-time Data**: Web search integration for up-to-date information
+- **File Search**: Upload and query technical documents and specifications
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **User Authentication**: Secure access with role-based permissions
+- **Conversation History**: Save and revisit previous conversations
+- **Admin Dashboard**: Monitor and manage system usage
 
 ## How to use
 

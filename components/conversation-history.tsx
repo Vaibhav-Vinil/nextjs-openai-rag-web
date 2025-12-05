@@ -231,15 +231,17 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
         {userEmail && (
           <div className="mb-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
             <div className="flex flex-col items-center px-3 pt-1 pb-3">
-              <div className="w-72 h-auto relative">
-                <Image 
-                  src="/PvChatbot-logo.png" 
-                  alt="pvAI Logo"
-                  width={288}
-                  height={144}
-                  style={{ objectFit: 'contain', width: '100%', height: 'auto' }}
-                  priority
-                />
+              <div className="w-full px-2">
+                <div className="relative w-full" style={{ paddingBottom: '50%' }}>
+                  <Image 
+                    src="/PvChatbot-logo.png" 
+                    alt="pvAI Logo"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    style={{ objectFit: 'contain' }}
+                    priority
+                  />
+                </div>
               </div>
               <p className="text-sm text-black truncate text-center" title={userEmail}>
                 Welcome, <span className="font-medium text-black">{userEmail}</span>
