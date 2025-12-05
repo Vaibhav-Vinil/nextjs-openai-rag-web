@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -47,24 +49,74 @@ export default function SignUpPage() {
       return;
     }
 
+    // Enhanced email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address (e.g., user@example.com)");
+      setLoading(false);
+      return;
+    }
+    
+    // Check for common TLDs to catch obvious typos
+    const tldRegex = /\.(com|org|net|io|co|uk|de|fr|in|au|ca|us|gov|edu|mil|biz|info|mobi|name|aero|jobs|museum)$/i;
+    const domain = email.split('@')[1];
+    if (!tldRegex.test(domain)) {
+      setError("Please check the domain in your email address");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      // First sign up the user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            display_name: displayName,
+            phone: phone // Keep in metadata as fallback
+          }
         },
       });
 
       if (signUpError) {
-        setError(signUpError.message || "Sign up failed");
-      } else {
-        setSuccess("Account created successfully! Please check your email to verify your account.");
-        // Optionally redirect after a delay
-        setTimeout(() => {
-          router.push("/login");
-        }, 3000);
+        // Handle specific error cases with more descriptive messages
+        if (signUpError.message.includes('Email address') && signUpError.message.includes('is invalid')) {
+          throw new Error('Please enter a properly formatted email address (e.g., user@example.com)');
+        } else if (signUpError.message.includes('already registered')) {
+          throw new Error('This email is already registered. Please use a different email or try logging in.');
+        } else if (signUpError.message.includes('domain')) {
+          throw new Error('The email domain appears to be invalid. Please check for typos.');
+        }
+        // For all other errors, use the original message but clean it up
+        throw new Error(signUpError.message.replace('AuthApiError: ', ''));
       }
+
+      // If we have a user and phone was provided, update the phone in auth.users
+      if (authData?.user && phone) {
+        try {
+          // Call the server-side function to update the phone
+          const { data, error: updateError } = await supabase.rpc('update_user_phone', {
+            user_id: authData.user.id,
+            phone_number: phone
+          });
+
+          if (updateError) {
+            console.warn("Could not update user phone:", updateError);
+            // Continue with signup even if phone update fails
+          }
+        } catch (rpcError) {
+          console.error("Error calling update_user_phone function:", rpcError);
+          // Continue with signup even if RPC call fails
+        }
+      }
+
+      setSuccess("Account created successfully! Please check your email to verify your account.");
+      // Optionally redirect after a delay
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
     } catch (error) {
       setError("An error occurred. Please try again.");
       console.error("Signup error:", error);
@@ -81,7 +133,7 @@ export default function SignUpPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
+              Email <span className="text-red-500">*</span>
             </label>
             <Input
               id="email"
@@ -90,6 +142,33 @@ export default function SignUpPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="Enter your email"
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label htmlFor="displayName" className="block text-sm font-medium mb-2">
+              Display Name <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="displayName"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              placeholder="Enter your display name"
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium mb-2">
+              Phone Number
+            </label>
+            <Input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter your phone number"
               className="w-full"
             />
           </div>
