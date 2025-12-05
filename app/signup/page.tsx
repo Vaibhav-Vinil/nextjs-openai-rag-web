@@ -118,10 +118,28 @@ export default function SignUpPage() {
         router.push("/login");
       }, 3000);
     } catch (error) {
-      setError("An error occurred. Please try again.");
-      console.error("Signup error:", error);
-      setLoading(false);
-    } finally {
+      // Handle errors without showing them in the console
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        // Handle specific error cases without logging to console
+        if (errorMessage.includes('already registered') || 
+            errorMessage.includes('already exists') ||
+            errorMessage.includes('already in use')) {
+          setError('This email is already registered. Please use a different email or try logging in.');
+        } else if (errorMessage.includes('invalid email')) {
+          setError('Please enter a valid email address');
+        } else if (errorMessage.includes('password')) {
+          setError('There was an issue with your password. Please try again.');
+        } else {
+          // For any other errors, show a generic but friendly message
+          setError('We encountered an issue. Please check your details and try again.');
+        }
+      } else {
+        // Fallback for non-Error objects
+        setError('We encountered an issue. Please check your details and try again.');
+      }
+      
       setLoading(false);
     }
   };
