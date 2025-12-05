@@ -7,7 +7,15 @@ interface WebSearchTool extends WebSearchConfig {
   type: "web_search";
 }
 
-export const getTools = async (toolsState: ToolsState) => {
+interface GetToolsOptions {
+  overrideAllowedDomains?: string[];
+}
+
+export const getTools = async (
+  toolsState: ToolsState,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _options?: GetToolsOptions
+) => {
   const {
     webSearchEnabled,
     fileSearchEnabled,
@@ -37,16 +45,7 @@ export const getTools = async (toolsState: ToolsState) => {
       webSearchTool.user_location = webSearchConfig.user_location;
     }
 
-    // Add domain filters if provided
-    if (webSearchConfig.filters?.allowed_domains?.length) {
-      webSearchTool.filters = {
-        allowed_domains: webSearchConfig.filters.allowed_domains
-          .map(domain => domain.trim())
-          .filter(domain => domain) // Remove empty strings
-          .slice(0, 20) // Limit to 20 domains as per API
-      };
-    }
-
+    // No domain restrictions - web search is completely open
     tools.push(webSearchTool);
   }
 
@@ -100,7 +99,6 @@ export const getTools = async (toolsState: ToolsState) => {
   }
 
   if (googleIntegrationEnabled) {
-    // Get fresh tokens (refresh if near expiry or missing access token when refresh exists)
     const { accessToken } = await getFreshAccessToken();
     tools.push(...getGoogleConnectorTools(accessToken!));
   }

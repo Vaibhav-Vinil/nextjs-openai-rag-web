@@ -4,24 +4,26 @@ import { createClient } from "@/lib/supabase/server";
 // GET: Get a specific conversation
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
+    const { id } = await params;
+    
     const { data, error } = await supabase
       .from("conversations")
       .select("*")
-      .eq("id", params.id)
-      .eq("user_id", session.user.id)
+      .eq("id", id)
+      .eq("user_id", user.id)
       .single();
 
     if (error) {
@@ -51,18 +53,20 @@ export async function GET(
 // PUT: Update a conversation
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+    
+    const { id } = await params;
 
     const body = await request.json();
     const { title, conversation_items, chat_messages } = body;
@@ -75,8 +79,8 @@ export async function PUT(
     const { data, error } = await supabase
       .from("conversations")
       .update(updateData)
-      .eq("id", params.id)
-      .eq("user_id", session.user.id)
+      .eq("id", id)
+      .eq("user_id", user.id)
       .select()
       .single();
 
@@ -107,24 +111,26 @@ export async function PUT(
 // DELETE: Delete a conversation
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+    
+    const { id } = await params;
 
     const { error } = await supabase
       .from("conversations")
       .delete()
-      .eq("id", params.id)
-      .eq("user_id", session.user.id);
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     if (error) {
       console.error("Error deleting conversation:", error);

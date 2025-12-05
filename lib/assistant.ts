@@ -2,14 +2,17 @@ import { parse } from "partial-json";
 import { handleTool } from "@/lib/tools/tools-handling";
 import useConversationStore from "@/stores/useConversationStore";
 import useToolsStore, { ToolsState } from "@/stores/useToolsStore";
-import { Annotation } from "@/components/annotations";
 import { functionsMap } from "@/config/functions";
 
-const normalizeAnnotation = (annotation: any): Annotation => ({
-  ...annotation,
-  fileId: annotation.file_id ?? annotation.fileId,
-  containerId: annotation.container_id ?? annotation.containerId,
-});
+type Annotation = {
+  type: "file_citation" | "url_citation" | "container_file_citation";
+  fileId?: string;
+  containerId?: string;
+  url?: string;
+  title?: string;
+  filename?: string;
+  index?: number;
+};
 
 export interface ContentItem {
   type: "input_text" | "output_text" | "refusal" | "output_audio";
@@ -90,8 +93,25 @@ export const handleTurn = async (
     });
 
     if (!response.ok) {
-      console.error(`Error: ${response.status} - ${response.statusText}`);
+      if (response.status === 429) {
+        // Handle query limit exceeded
+        const errorData = await response.json().catch(() => ({}));
+        onMessage({
+          event: "error",
+          data: {
+            type: "query_limit_exceeded",
+            message: errorData.message || "You've reached your daily query limit. Please try again tomorrow."
+          }
+        });
+      } else {
+        console.error(`Error: ${response.status} - ${response.statusText}`);
+      }
       return;
+    }
+    
+    // Trigger query limit update when we get a successful response
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('queryResponseReceived'));
     }
 
     // Reader for streaming data
@@ -142,6 +162,7 @@ export const processMessages = async () => {
     setChatMessages,
     setConversationItems,
     setAssistantLoading,
+    setWebSearchIndicatorId,
   } = useConversationStore.getState();
 
   const toolsState = useToolsStore.getState() as ToolsState;
@@ -158,9 +179,37 @@ export const processMessages = async () => {
     toolsState,
     async ({ event, data }) => {
       switch (event) {
+        case "error": {
+          if (data.type === "query_limit_exceeded") {
+            // Add error message to chat
+            chatMessages.push({
+              type: "message",
+              role: "assistant",
+              content: [{
+                type: "output_text",
+                text: data.message || "You've reached your daily query limit. Please try again tomorrow."
+              }]
+            });
+            setChatMessages([...chatMessages]);
+          }
+          setAssistantLoading(false);
+          const { webSearchIndicatorId } = useConversationStore.getState();
+          if (webSearchIndicatorId) {
+            const filtered = chatMessages.filter(
+              (m) => m.id !== webSearchIndicatorId
+            );
+            if (filtered.length !== chatMessages.length) {
+              chatMessages.length = 0;
+              chatMessages.push(...filtered);
+              setChatMessages([...chatMessages]);
+            }
+            setWebSearchIndicatorId(null);
+          }
+          break;
+        }
         case "response.output_text.delta":
         case "response.output_text.annotation.added": {
-          const { delta, item_id, annotation } = data;
+          const { delta, item_id } = data;
 
           let partial = "";
           if (typeof delta === "string") {
@@ -191,11 +240,19 @@ export const processMessages = async () => {
             const contentItem = lastItem.content[0];
             if (contentItem && contentItem.type === "output_text") {
               contentItem.text = assistantMessageContent;
+              // Annotations are disabled to hide sources from users
+              // To re-enable, uncomment the lines below and comment out the current assignment
+              /*
               if (annotation) {
                 contentItem.annotations = [
                   ...(contentItem.annotations ?? []),
                   normalizeAnnotation(annotation),
                 ];
+              }
+              */
+              // Keep annotations empty to hide sources
+              if (contentItem.annotations) {
+                contentItem.annotations = [];
               }
             }
           }
@@ -216,8 +273,13 @@ export const processMessages = async () => {
           switch (item.type) {
             case "message": {
               const text = item.content?.text || "";
+              // Annotations are disabled to hide sources from users
+              // To re-enable, uncomment the lines below and comment out the empty annotations array
+              /*
               const annotations =
                 item.content?.annotations?.map(normalizeAnnotation) || [];
+              */
+              const annotations: Annotation[] = []; // Empty array to hide sources
               chatMessages.push({
                 type: "message",
                 role: "assistant",
@@ -259,13 +321,18 @@ export const processMessages = async () => {
               break;
             }
             case "web_search_call": {
-              chatMessages.push({
-                type: "tool_call",
-                tool_type: "web_search_call",
-                status: item.status || "in_progress",
-                id: item.id,
-              });
-              setChatMessages([...chatMessages]);
+              const { webSearchIndicatorId } = useConversationStore.getState();
+              if (!webSearchIndicatorId) {
+                const indicatorId = item.id || `web-search-${Date.now()}`;
+                chatMessages.push({
+                  type: "tool_call",
+                  tool_type: "web_search_call",
+                  status: "in_progress",
+                  id: indicatorId,
+                });
+                setChatMessages([...chatMessages]);
+                setWebSearchIndicatorId(indicatorId);
+              }
               break;
             }
             case "file_search_call": {
@@ -432,13 +499,7 @@ export const processMessages = async () => {
         }
 
         case "response.web_search_call.completed": {
-          const { item_id, output } = data;
-          const toolCallMessage = chatMessages.find((m) => m.id === item_id);
-          if (toolCallMessage && toolCallMessage.type === "tool_call") {
-            toolCallMessage.output = output;
-            toolCallMessage.status = "completed";
-            setChatMessages([...chatMessages]);
-          }
+          // Keep the loading indicator alive until the overall assistant response finishes.
           break;
         }
 
@@ -540,6 +601,19 @@ export const processMessages = async () => {
               arguments: mcpApprovalRequestMessage.arguments,
             });
             setChatMessages([...chatMessages]);
+          }
+
+          const { webSearchIndicatorId } = useConversationStore.getState();
+          if (webSearchIndicatorId) {
+            const filtered = chatMessages.filter(
+              (m) => m.id !== webSearchIndicatorId
+            );
+            if (filtered.length !== chatMessages.length) {
+              chatMessages.length = 0;
+              chatMessages.push(...filtered);
+              setChatMessages([...chatMessages]);
+            }
+            setWebSearchIndicatorId(null);
           }
 
           break;

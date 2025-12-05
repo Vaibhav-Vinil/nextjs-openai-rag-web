@@ -1,7 +1,7 @@
 import React from "react";
 
 import { ToolCallItem } from "@/lib/assistant";
-import { BookOpenText, Clock, Globe, Zap, Code2, Download } from "lucide-react";
+import { BookOpenText, Clock, Zap, Code2, Download, Globe } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { coy } from "react-syntax-highlighter/dist/esm/styles/prism";
 
@@ -81,14 +81,12 @@ function FileSearchCell({ toolCall }: ToolCallProps) {
   );
 }
 
-function WebSearchCell({ toolCall }: ToolCallProps) {
+function WebSearchCell() {
   return (
     <div className="flex gap-2 items-center text-blue-500 mb-[-16px] ml-[-8px]">
       <Globe size={16} />
       <div className="text-sm font-medium">
-        {toolCall.status === "completed"
-          ? "Searched the web"
-          : "Searching the web..."}
+        Searching the web...
       </div>
     </div>
   );
@@ -217,24 +215,26 @@ function CodeInterpreterCell({ toolCall }: ToolCallProps) {
 }
 
 export default function ToolCall({ toolCall }: ToolCallProps) {
-  return (
-    <div className="flex justify-start pt-2">
-      {(() => {
-        switch (toolCall.tool_type) {
-          case "function_call":
-            return <ApiCallCell toolCall={toolCall} />;
-          case "file_search_call":
-            return <FileSearchCell toolCall={toolCall} />;
-          case "web_search_call":
-            return <WebSearchCell toolCall={toolCall} />;
-          case "mcp_call":
-            return <McpCallCell toolCall={toolCall} />;
-          case "code_interpreter_call":
-            return <CodeInterpreterCell toolCall={toolCall} />;
-          default:
-            return null;
-        }
-      })()}
-    </div>
-  );
+  const content = (() => {
+    switch (toolCall.tool_type) {
+      case "function_call":
+        return <ApiCallCell toolCall={toolCall} />;
+      case "file_search_call":
+        return <FileSearchCell toolCall={toolCall} />;
+      case "web_search_call":
+        return <WebSearchCell />;
+      case "mcp_call":
+        return <McpCallCell toolCall={toolCall} />;
+      case "code_interpreter_call":
+        return <CodeInterpreterCell toolCall={toolCall} />;
+      default:
+        return null;
+    }
+  })();
+
+  if (!content) {
+    return null;
+  }
+
+  return <div className="flex justify-start pt-2">{content}</div>;
 }

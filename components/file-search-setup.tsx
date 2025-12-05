@@ -24,8 +24,8 @@ export default function FileSearchSetup() {
       const data = await response.json();
       const sharedStore = data.store;
 
-      if (sharedStore?.store_id) {
-        if (vectorStore?.id !== sharedStore.store_id) {
+      if (sharedStore && sharedStore.store_id) {
+        if (!vectorStore?.id || vectorStore.id !== sharedStore.store_id) {
           setVectorStore({
             id: sharedStore.store_id,
             name: sharedStore.store_name || "",
@@ -48,8 +48,6 @@ export default function FileSearchSetup() {
 
   useEffect(() => {
     syncSharedStore();
-    const interval = setInterval(syncSharedStore, 15000);
-    return () => clearInterval(interval);
   }, [syncSharedStore]);
 
   const unlinkStore = async () => {
