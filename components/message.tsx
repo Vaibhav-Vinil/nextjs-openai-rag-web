@@ -77,6 +77,24 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
                           <table className="min-w-full border border-gray-200" {...props} />
                         </div>
                       ),
+                      th: ({ node, ...props }) => (
+                        <th className="border border-gray-300 bg-gray-100 px-4 py-2 text-left font-semibold" {...props} />
+                      ),
+                      td: ({ node, ...props }) => (
+                        <td className="border border-gray-300 px-4 py-2" {...props} />
+                      ),
+                      tr: ({ node, ...props }) => (
+                        <tr className="hover:bg-gray-50" {...props} />
+                      ),
+                      img: ({ node, ...props }) => (
+                        <a href={props.src} target="_blank" rel="noopener noreferrer" className="block">
+                          <img 
+                            {...props} 
+                            className="mt-2 max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                            alt={props.alt || 'Image from web search'}
+                          />
+                        </a>
+                      ),
                     }}
                   >
                     {removeInlineCitations(message.content[0].text as string)}
