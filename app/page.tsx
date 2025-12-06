@@ -2,7 +2,7 @@
 import Assistant from "@/components/assistant";
 import ConversationHistory from "@/components/conversation-history";
 import ConfigLoader from "@/components/config-loader";
-import { PanelsTopLeft, X, Settings, Check } from "lucide-react";
+import { PanelsTopLeft, Settings, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useConversationStore from "@/stores/useConversationStore";
@@ -12,12 +12,14 @@ import { isAdmin } from "@/config/admin-emails";
 function CollapsibleConversationSidebar({
   userEmail,
   userId,
+  displayName,
   onLogout,
   publicView,
   onOpenChange,
 }: {
   userEmail: string;
   userId: string;
+  displayName?: string;
   onLogout: () => void;
   publicView?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
@@ -41,44 +43,70 @@ function CollapsibleConversationSidebar({
     <div className="flex relative">
       {/* Sidebar */}
       <div 
-        className={`fixed md:relative z-30 h-full transition-all duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0'
-        } w-64 bg-[#f8fafc]`}
+        className={`fixed md:relative z-30 h-full w-64 bg-[#f8fafc] shadow-lg md:shadow-none transform-gpu will-change-transform ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        style={{
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+        }}
       >
         <div className="h-full overflow-y-auto">
-          <ConversationHistory userEmail={userEmail} userId={userId} onLogout={onLogout} publicView={publicView} />
+          <ConversationHistory 
+            userEmail={userEmail} 
+            userId={userId} 
+            displayName={displayName}
+            onLogout={onLogout} 
+            publicView={publicView} 
+          />
         </div>
       </div>
       
       {/* Toggle Button - Visible on all screens */}
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`fixed z-40 top-4 left-4 rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 ${
-          isOpen ? 'md:left-[276px]' : 'left-4'
-        }`}
-        aria-label={isOpen ? "Hide conversations" : "Show conversations"}
+      <div 
+        className="fixed z-40 top-4 left-4 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        style={{
+          transform: isOpen ? 'translateX(264px)' : 'translateX(0)',
+          willChange: 'transform',
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
       >
-        <PanelsTopLeft size={20} className="text-black hover:text-black/80" />
-      </button>
+        <button
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="rounded-lg p-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 hover:scale-105 active:scale-95"
+          aria-label={isOpen ? "Hide conversations" : "Show conversations"}
+        >
+          <PanelsTopLeft 
+            size={20} 
+            className="text-black hover:text-black/80"
+          />
+        </button>
+      </div>
       
       {/* Overlay for mobile - only show when sidebar is open on mobile */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 md:hidden z-20"
-          onClick={() => setIsOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      <div 
+        className={`fixed inset-0 bg-black/50 md:hidden z-20 ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsOpen(false)}
+        aria-hidden="true"
+        style={{
+          transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: 'opacity',
+          backdropFilter: 'blur(2px)'
+        }}
+      />
     </div>
   );
 }
 
 
 export default function Main() {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [, setIsHistoryOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
+  const [displayName, setDisplayName] = useState<string>("");
   // Removed unused hasUserSentMessage state as it's not being used
   
   // Detect if we're viewing a public/shared conversation via URL params
@@ -98,6 +126,7 @@ export default function Main() {
       if (session) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
+        setDisplayName(session.user.user_metadata?.display_name || "");
       } else {
         // If this is a public/shared conversation view, don't force a login redirect.
         setIsAuthenticated(false);
@@ -118,6 +147,7 @@ export default function Main() {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
         setUserId(session.user.id);
+        setDisplayName(session.user.user_metadata?.display_name || "");
       } else {
         // Avoid redirecting to login when someone is viewing a public/shared conversation
         setIsAuthenticated(false);
@@ -371,59 +401,19 @@ export default function Main() {
           </div>
         )}
       </div>
-      {/* Mobile menu button */}
-      <div className="fixed top-4 left-4 z-40">
-        <button
-          onClick={() => setIsHistoryOpen(true)}
-          className="md:hidden rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300"
-          aria-label="Open conversations"
-        >
-          <PanelsTopLeft size={20} className="text-black hover:text-black/80" />
-        </button>
-      </div>
-
-      {/* Mobile conversation history */}
-      {isHistoryOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="w-full max-w-xs h-full bg-[#eef0f5] shadow-2xl flex flex-col text-black">
-            <div className="flex items-center justify-between p-4 border-b border-black/10">
-              <h2 className="text-sm font-semibold">Conversations</h2>
-              <button
-                onClick={() => setIsHistoryOpen(false)}
-                className="rounded-full p-2 hover:bg-black/5"
-                aria-label="Close conversations"
-              >
-                <X size={18} className="text-black" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <ConversationHistory
-                userEmail={userEmail}
-                onLogout={() => {
-                  handleLogout();
-                  setIsHistoryOpen(false);
-                }}
-              />
-            </div>
-          </div>
-          <div
-            className="flex-1 bg-black/40"
-            onClick={() => setIsHistoryOpen(false)}
-            aria-hidden="true"
-          />
-        </div>
-      )}
+      {/* Mobile menu button is now part of the CollapsibleConversationSidebar */}
 
       {/* Conversation History Sidebar (hidden for public/shared views) */}
-<CollapsibleConversationSidebar 
-        userEmail={userEmail} 
-        userId={userId} 
-        onLogout={handleLogout} 
-        publicView={isPublicView} 
-        onOpenChange={() => {
-          // Sidebar open/close handler can be implemented here if needed
-        }}
-      />
+      {!isPublicView && (
+        <CollapsibleConversationSidebar
+          userEmail={userEmail}
+          userId={userId}
+          displayName={displayName}
+          onLogout={handleLogout}
+          publicView={isPublicView}
+          onOpenChange={setIsHistoryOpen}
+        />
+      )}
 
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex min-h-0">

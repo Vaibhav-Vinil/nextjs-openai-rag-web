@@ -11,7 +11,6 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
-  const [phoneError, setPhoneError] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -47,14 +46,14 @@ export default function SignUpPage() {
     if (digitsOnly.length < 5) {
       return { 
         isValid: false, 
-        error: 'Invalid phone number. Please enter at least 5 digits.' 
+        error: 'Invalid phone number'
       };
     }
     
     if (digitsOnly.length > 15) {
       return { 
         isValid: false, 
-        error: 'Phone number is too long. Maximum 15 digits allowed.' 
+        error: 'Invalid phone number'
       };
     }
     
@@ -63,7 +62,7 @@ export default function SignUpPage() {
     if (!phoneRegex.test(phoneNumber)) {
       return { 
         isValid: false, 
-        error: 'Please enter a valid phone number. You can use numbers, +, -, (, ), and spaces.' 
+        error: 'Invalid phone number'
       };
     }
     
@@ -71,12 +70,11 @@ export default function SignUpPage() {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    // Only allow numbers and specific phone number characters
+    const value = e.target.value.replace(/[^0-9+\-()\s]/g, '');
     setPhone(value);
-    
-    // Validate the phone number
-    const { error } = validatePhoneNumber(value);
-    setPhoneError(error || '');
+    // Clear any previous error when user types
+    if (error) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,11 +83,11 @@ export default function SignUpPage() {
     setSuccess("");
     setLoading(true);
     
-    // Validate phone number if provided
+    // Validate phone number if provided (only on submit)
     if (phone) {
       const { isValid, error } = validatePhoneNumber(phone);
       if (!isValid) {
-        setPhoneError(error || 'Please enter a valid phone number');
+        setError(error || 'Please enter a valid phone number');
         setLoading(false);
         return;
       }
@@ -172,11 +170,18 @@ export default function SignUpPage() {
         }
       }
 
-      setSuccess("Account created successfully!");
-      // Optionally redirect after a delay
-      setTimeout(() => {
-        router.push("/login");
-      }, 3000);
+      // Sign in the user automatically after successful signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (signInError) {
+        throw new Error('Account created but failed to sign in automatically. Please log in manually.');
+      }
+
+      // Redirect to chat page after successful sign in
+      router.push('/');
     } catch (error) {
       // Handle errors without showing them in the console
       if (error instanceof Error) {
@@ -203,6 +208,18 @@ export default function SignUpPage() {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+        <div className="w-full max-w-md text-center bg-white p-8 rounded-lg shadow-md">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-lg font-medium">Setting up your account...</p>
+          <p className="text-gray-600 mt-2">You&apos;ll be redirected to the chat shortly</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -262,12 +279,9 @@ export default function SignUpPage() {
             value={phone}
             onChange={handlePhoneChange}
             placeholder="e.g., +1 (123) 456-7890"
-            className={`w-full ${phoneError ? 'border-red-500' : ''}`}
+            className="w-full"
             required
           />
-          {phoneError && (
-            <p className="mt-1 text-sm text-red-600">{phoneError}</p>
-          )}
           <p className="mt-1 text-xs text-gray-500">
             Include country code (e.g., +1, +44, +971)
           </p>
@@ -304,19 +318,27 @@ export default function SignUpPage() {
         </div>
         
         {error && (
-          <div className="text-red-600 text-sm text-center">{error}</div>
-        )}
-        
-        {success && (
-          <div className="text-green-600 text-sm text-center">{success}</div>
+          <div className="mt-2 text-center">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
         )}
         
         <Button
           type="submit"
-          className="w-full"
+          className="w-full mt-4 flex items-center justify-center gap-2"
           disabled={loading}
         >
-          {loading ? "Creating account..." : "Sign Up"}
+          {loading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating your account...
+            </>
+          ) : (
+            'Sign Up'
+          )}
         </Button>
         
         <div className="text-center text-sm text-gray-600">
