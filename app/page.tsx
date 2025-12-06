@@ -79,15 +79,7 @@ export default function Main() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [hasUserSentMessage, setHasUserSentMessage] = useState(false);
-  
-  // Track if user has sent any messages
-  useEffect(() => {
-    const state = useConversationStore.getState();
-    const hasMessages = state.conversationItems.some(item => item.role === 'user');
-    setHasUserSentMessage(hasMessages);
-  }, [useConversationStore.getState().conversationItems]);
+  // Removed unused hasUserSentMessage state as it's not being used
   
   // Detect if we're viewing a public/shared conversation via URL params
   const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -423,12 +415,14 @@ export default function Main() {
       )}
 
       {/* Conversation History Sidebar (hidden for public/shared views) */}
-      <CollapsibleConversationSidebar 
+<CollapsibleConversationSidebar 
         userEmail={userEmail} 
         userId={userId} 
         onLogout={handleLogout} 
-        publicView={isPublicView}
-        onOpenChange={setIsSidebarOpen}
+        publicView={isPublicView} 
+        onOpenChange={() => {
+          // Sidebar open/close handler can be implemented here if needed
+        }}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
