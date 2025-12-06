@@ -12,6 +12,7 @@ import ConversationLoading from "./conversation-loading";
 import useConversationStore from "@/stores/useConversationStore";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface ChatProps {
   items: Item[];
@@ -147,10 +148,12 @@ const Chat: React.FC<ChatProps> = ({
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {!hasUserSentMessage && !isAssistantLoading && !isConversationLoading && (
                 <div className="w-full flex justify-center">
-                  <img 
+                  <Image 
                     src="/PvChatbot-logo.png" 
                     alt="PV Chatbot Logo" 
-                    className="w-62 h-48 opacity-62 object-contain"
+                    width={250}
+                    height={200}
+                    className="opacity-62 object-contain"
                   />
                 </div>
               )}

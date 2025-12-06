@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -56,10 +57,13 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md space-y-4">
           <div className="flex flex-col items-center">
             <div className="w-40 h-40 relative mb-4">
-              <img
+              <Image
                 src="/PvChatbot-logo.png"
                 alt="PvChatbot Logo"
+                width={160}
+                height={160}
                 className="w-full h-full object-contain"
+                priority
               />
             </div>
             <h1 className="text-2xl font-bold text-center mb-6">Welcome Back</h1>
