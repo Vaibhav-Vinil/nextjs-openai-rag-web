@@ -73,26 +73,7 @@ function CollapsibleConversationSidebar({
         </div>
       </div>
       
-      {/* Toggle Button - Visible on all screens */}
-      <div 
-        className="fixed z-40 top-4 left-4 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-        style={{
-          transform: externalIsOpen ? 'translateX(264px)' : 'translateX(0)',
-          willChange: 'transform',
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}
-      >
-        <button
-          onClick={toggleSidebar}
-          className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 hover:scale-105 active:scale-95"
-          aria-label={externalIsOpen ? "Hide conversations" : "Show conversations"}
-        >
-          <PanelsTopLeft 
-            size={20} 
-            className="text-black hover:text-black/80"
-          />
-        </button>
-      </div>
+      {/* Toggle button has been moved to the main layout */}
       
       {/* Overlay for mobile - only show when sidebar is open on mobile */}
       {externalIsOpen && (
@@ -364,13 +345,36 @@ export default function Main() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-transparent">
+    <div className="flex h-screen overflow-hidden bg-transparent relative">
+      {/* Sidebar Toggle Button - Always visible */}
+      {isAuthenticated && (
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="fixed z-50 top-4 p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black rounded-lg"
+          style={{
+            transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+            left: isSidebarOpen ? 'calc(16rem + 1rem)' : '1rem',
+            zIndex: 50
+          }}
+          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          <PanelsTopLeft size={20} />
+        </button>
+      )}
+
       {/* Sidebar */}
       {isAuthenticated && (
         <div 
-          className={`fixed md:relative z-30 h-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          className={`fixed z-40 h-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-white shadow-lg ${
             isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
           }`}
+          style={{
+            transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            bottom: 0
+          }}
         >
           <CollapsibleConversationSidebar
             userEmail={userEmail}
@@ -387,9 +391,16 @@ export default function Main() {
 
       {/* Main Content */}
       <div 
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-          isSidebarOpen ? 'md:ml-64' : 'md:ml-0'
-        }`}
+        className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        style={{
+          marginLeft: isSidebarOpen ? '16rem' : '0',
+          width: '100%',
+          transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          maxWidth: '100%',
+          paddingLeft: '1rem',
+          paddingRight: '1rem',
+          position: 'relative'
+        }}
       >
         {/* Top-right controls */}
         <div className="fixed top-4 right-4 flex flex-col items-end gap-2 z-40">
@@ -441,7 +452,15 @@ export default function Main() {
 
         {/* Chat Area */}
         <div className="flex-1 flex min-h-0 pt-16">
-          <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-6">
+          <div className="w-full px-4 sm:px-6 md:px-8 py-6" style={{
+            width: '100%',
+            maxWidth: '64rem',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '1rem',
+            paddingRight: '1rem',
+            transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+          }}>
             <ConfigLoader publicView={isPublicView}>
               <Assistant />
             </ConfigLoader>
