@@ -51,10 +51,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+      <div className="w-full max-w-md">
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md space-y-4">
+          <div className="flex flex-col items-center">
+            <div className="w-40 h-40 relative mb-4">
+              <img
+                src="/PvChatbot-logo.png"
+                alt="PvChatbot Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-center mb-6">Welcome Back</h1>
+          </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
               Email
@@ -104,4 +113,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

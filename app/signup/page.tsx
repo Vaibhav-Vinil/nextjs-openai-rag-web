@@ -204,10 +204,20 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Sign Up</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+      <div className="w-full max-w-md">
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md space-y-4">
+          <div className="flex flex-col items-center">
+            <div className="w-40 h-40 relative mb-4">
+              <img
+                src="/PvChatbot-logo.png"
+                alt="PvChatbot Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-center mb-6">Create an Account</h1>
+          </div>
+          
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
               Email <span className="text-red-500">*</span>
@@ -222,88 +232,96 @@ export default function SignUpPage() {
               className="w-full"
             />
           </div>
-          <div>
-            <label htmlFor="displayName" className="block text-sm font-medium mb-2">
-              Display Name <span className="text-red-500">*</span>
-            </label>
-            <Input
-              id="displayName"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-              placeholder="Enter your display name"
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium mb-2">
-              Phone Number <span className="text-red-500">*</span>
-            </label>
-            <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={handlePhoneChange}
-              placeholder="e.g., +1 (123) 456-7890"
-              className={`w-full ${phoneError ? 'border-red-500' : ''}`}
-              required
-            />
-            {phoneError && (
-              <p className="mt-1 text-sm text-red-600">{phoneError}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500">
-              Include country code (e.g., +1, +44, +971)
-            </p>
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password <span className="text-red-500">*</span>
-            </label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="Enter your password (min 6 characters)"
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-              Confirm Password
-            </label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              placeholder="Confirm your password"
-              className="w-full"
-            />
-          </div>
-          {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
-          )}
-          {success && (
-            <div className="text-green-600 text-sm text-center">{success}</div>
-          )}
-          <Button
-            type="submit"
+        
+        <div>
+          <label htmlFor="displayName" className="block text-sm font-medium mb-2">
+            Display Name <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="displayName"
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required
+            placeholder="Enter your display name"
             className="w-full"
-            disabled={loading}
-          >
-            {loading ? "Creating account..." : "Sign Up"}
-          </Button>
-          <div className="text-center text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">
-              Login
-            </Link>
-          </div>
-        </form>
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium mb-2">
+            Phone Number <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="phone"
+            type="tel"
+            value={phone}
+            onChange={handlePhoneChange}
+            placeholder="e.g., +1 (123) 456-7890"
+            className={`w-full ${phoneError ? 'border-red-500' : ''}`}
+            required
+          />
+          {phoneError && (
+            <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            Include country code (e.g., +1, +44, +971)
+          </p>
+        </div>
+        
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium mb-2">
+            Password <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Enter your password (min 6 characters)"
+            className="w-full"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
+            Confirm Password <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            placeholder="Confirm your password"
+            className="w-full"
+          />
+        </div>
+        
+        {error && (
+          <div className="text-red-600 text-sm text-center">{error}</div>
+        )}
+        
+        {success && (
+          <div className="text-green-600 text-sm text-center">{success}</div>
+        )}
+        
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loading}
+        >
+          {loading ? "Creating account..." : "Sign Up"}
+        </Button>
+        
+        <div className="text-center text-sm text-gray-600">
+          Already have an account?{" "}
+          <Link href="/login" className="text-blue-600 hover:underline">
+            Login
+          </Link>
+        </div>
+      </form>
       </div>
     </div>
   );
