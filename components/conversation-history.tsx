@@ -12,11 +12,12 @@ import { useRouter } from "next/navigation";
 interface ConversationHistoryProps {
   userEmail?: string;
   userId?: string;
+  displayName?: string;
   onLogout?: () => void;
   publicView?: boolean;
 }
 
-export default function ConversationHistory({ userEmail, userId, onLogout, publicView }: ConversationHistoryProps) {
+export default function ConversationHistory({ userEmail, userId, displayName, onLogout, publicView }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -243,9 +244,14 @@ export default function ConversationHistory({ userEmail, userId, onLogout, publi
                   />
                 </div>
               </div>
-              <p className="text-sm text-black truncate text-center" title={userEmail}>
-                Welcome, <span className="font-medium text-black">{userEmail}</span>
-              </p>
+              <div className="w-full text-center">
+                <p className="text-sm text-black break-words">
+                  Welcome,<br />
+                  <span className="font-medium text-black" title={displayName || userEmail}>
+                    {displayName || userEmail?.split('@')[0]}
+                  </span>
+                </p>
+              </div>
             </div>
             {userId && <QueryLimitDisplay />}
             {onLogout && (
