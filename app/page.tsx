@@ -28,11 +28,6 @@ function CollapsibleConversationSidebar({
   isOpen: boolean;
   onSetIsOpen: (isOpen: boolean) => void;
 }) {
-  const toggleSidebar = () => {
-    const newState = !externalIsOpen;
-    onSetIsOpen(newState);
-    if (onOpenChange) onOpenChange(newState);
-  };
 
   useEffect(() => {
     // Initialize sidebar state based on screen size
@@ -353,7 +348,8 @@ export default function Main() {
           className="fixed z-50 top-4 p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black rounded-lg"
           style={{
             transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-            left: isSidebarOpen ? 'calc(16rem + 1rem)' : '1rem',
+            // On mobile, always stay at 1rem from left
+            left: window.innerWidth >= 768 ? (isSidebarOpen ? 'calc(16rem + 1rem)' : '1rem') : '1rem',
             zIndex: 50
           }}
           aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
@@ -362,10 +358,18 @@ export default function Main() {
         </button>
       )}
 
+      {/* Mobile Overlay */}
+      {isAuthenticated && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       {isAuthenticated && (
         <div 
-          className={`fixed z-40 h-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-white shadow-lg ${
+          className={`fixed z-40 h-full transition-all duration-300 ease-out bg-white shadow-lg ${
             isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
           }`}
           style={{
@@ -373,7 +377,8 @@ export default function Main() {
             position: 'fixed',
             left: 0,
             top: 0,
-            bottom: 0
+            bottom: 0,
+            zIndex: 40
           }}
         >
           <CollapsibleConversationSidebar
@@ -391,11 +396,11 @@ export default function Main() {
 
       {/* Main Content */}
       <div 
-        className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? 'md:ml-64' : 'md:ml-0'
+        }`}
         style={{
-          marginLeft: isSidebarOpen ? '16rem' : '0',
           width: '100%',
-          transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
           maxWidth: '100%',
           paddingLeft: '1rem',
           paddingRight: '1rem',
