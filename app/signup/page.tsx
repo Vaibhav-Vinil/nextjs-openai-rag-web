@@ -112,7 +112,7 @@ export default function SignUpPage() {
         }
       }
 
-      setSuccess("Account created successfully! Please check your email to verify your account.");
+      setSuccess("Account created successfully!");
       // Optionally redirect after a delay
       setTimeout(() => {
         router.push("/login");

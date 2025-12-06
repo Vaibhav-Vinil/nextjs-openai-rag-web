@@ -100,7 +100,7 @@ export const handleTurn = async (
           event: "error",
           data: {
             type: "query_limit_exceeded",
-            message: errorData.message || "You've reached your daily query limit. Please try again tomorrow."
+            message: errorData.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at <a href='mailto:info@pv.market' class='text-blue-600 hover:underline'>info@pv.market</a> or <a href='tel:+971523825549' class='text-blue-600 hover:underline'>+971 523825549</a> for further support."
           }
         });
       } else {
@@ -187,7 +187,7 @@ export const processMessages = async () => {
               role: "assistant",
               content: [{
                 type: "output_text",
-                text: data.message || "You've reached your daily query limit. Please try again tomorrow."
+                text: data.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at <a href='mailto:info@pv.market' class='text-blue-600 hover:underline'>info@pv.market</a> or <a href='tel:+971523825549' class='text-blue-600 hover:underline'>+971 523825549</a> for further support."
               }]
             });
             setChatMessages([...chatMessages]);
