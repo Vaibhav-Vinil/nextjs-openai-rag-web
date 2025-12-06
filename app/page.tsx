@@ -3,7 +3,7 @@ import Assistant from "@/components/assistant";
 import ConversationHistory from "@/components/conversation-history";
 import ConfigLoader from "@/components/config-loader";
 import { PanelsTopLeft, Settings, Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useConversationStore from "@/stores/useConversationStore";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,8 @@ function CollapsibleConversationSidebar({
   onLogout,
   publicView,
   onOpenChange,
+  isOpen: externalIsOpen,
+  onSetIsOpen
 }: {
   userEmail: string;
   userId: string;
@@ -23,31 +25,40 @@ function CollapsibleConversationSidebar({
   onLogout: () => void;
   publicView?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
+  isOpen: boolean;
+  onSetIsOpen: (isOpen: boolean) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // Notify parent component when sidebar state changes
-  useEffect(() => {
-    if (onOpenChange) {
-      onOpenChange(isOpen);
-    }
-  }, [isOpen, onOpenChange]);
+  const toggleSidebar = () => {
+    const newState = !externalIsOpen;
+    onSetIsOpen(newState);
+    if (onOpenChange) onOpenChange(newState);
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-      setIsOpen(true);
-    }
-  }, []);
+    // Initialize sidebar state based on screen size
+    const handleResize = () => {
+      const shouldBeOpen = window.innerWidth >= 1024;
+      onSetIsOpen(shouldBeOpen);
+      if (onOpenChange) onOpenChange(shouldBeOpen);
+    };
+
+    // Set initial state
+    handleResize();
+    
+    // Update on window resize
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [onOpenChange, onSetIsOpen]);
 
   return (
     <div className="flex relative">
       {/* Sidebar */}
       <div 
         className={`fixed md:relative z-30 h-full w-64 bg-[#f8fafc] shadow-lg md:shadow-none transform-gpu will-change-transform ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          externalIsOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         style={{
-          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transform: externalIsOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
         }}
       >
@@ -62,51 +73,37 @@ function CollapsibleConversationSidebar({
         </div>
       </div>
       
-      {/* Toggle Button - Visible on all screens */}
-      <div 
-        className="fixed z-40 top-4 left-4 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-        style={{
-          transform: isOpen ? 'translateX(264px)' : 'translateX(0)',
-          willChange: 'transform',
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}
-      >
-        <button
-          onClick={() => setIsOpen((prev) => !prev)}
-          className="rounded-lg p-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 hover:scale-105 active:scale-95"
-          aria-label={isOpen ? "Hide conversations" : "Show conversations"}
-        >
-          <PanelsTopLeft 
-            size={20} 
-            className="text-black hover:text-black/80"
-          />
-        </button>
-      </div>
+      {/* Toggle button has been moved to the main layout */}
       
       {/* Overlay for mobile - only show when sidebar is open on mobile */}
-      <div 
-        className={`fixed inset-0 bg-black/50 md:hidden z-20 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setIsOpen(false)}
-        aria-hidden="true"
-        style={{
-          transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          willChange: 'opacity',
-          backdropFilter: 'blur(2px)'
-        }}
-      />
+      {externalIsOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-20 md:hidden"
+          onClick={() => onSetIsOpen(false)}
+          style={{
+            transition: 'opacity 0.3s ease',
+            willChange: 'opacity',
+            backdropFilter: 'blur(2px)'
+          }}
+        />
+      )}
     </div>
   );
 }
 
 
 export default function Main() {
-  const [, setIsHistoryOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [displayName, setDisplayName] = useState<string>("");
+  const [shareCopied, setShareCopied] = useState(false);
+  
+  // Handle sidebar open/close state
+  const handleSidebarOpenChange = useCallback((open: boolean) => {
+    setIsSidebarOpen(open);
+  }, []);
   // Removed unused hasUserSentMessage state as it's not being used
   
   // Detect if we're viewing a public/shared conversation via URL params
@@ -114,7 +111,6 @@ export default function Main() {
   // Consider both full conversation shares and single-response snippet shares public
   const initialPublicView = (urlParams.get("public") === "true" && Boolean(urlParams.get("conv"))) || (urlParams.get("public_snippet") === "true" && Boolean(urlParams.get("snippet")));
   const [isPublicView] = useState<boolean>(initialPublicView);
-  const [shareCopied, setShareCopied] = useState(false);
   const router = useRouter();
   const { resetConversation } = useConversationStore();
   const supabase = createClient();
@@ -349,75 +345,122 @@ export default function Main() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-transparent">
-      {/* Top-right controls */}
-      <div className="fixed top-4 right-4 flex flex-col items-end gap-2 z-40">
-        {/* Show full-chat share button only when authenticated and a conversation is loaded */}
-        {isAuthenticated && (
-          <div className="flex flex-col items-end gap-2">
-            <button
-              onClick={async () => {
-                try {
-                  const state = useConversationStore.getState();
-                  const convId = state.currentConversationId;
-                  if (!convId) return;
-                  // Mark conversation as publicly shareable
-                  const res = await fetch(`/api/conversations/${convId}/share`, { method: 'POST' });
-                  if (!res.ok) throw new Error('Failed to mark conversation public');
-                  const shareUrl = `${window.location.origin}?conv=${convId}&public=true`;
-                  await navigator.clipboard.writeText(shareUrl);
-                  // Visual feedback: show copied state for 2s
-                  setShareCopied(true);
-                  setTimeout(() => setShareCopied(false), 2000);
-                } catch (err) {
-                  console.error('Error sharing full conversation:', err);
-                }
-              }}
-              className="rounded-lg p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black"
-              title="Share entire conversation"
-            >
-              {shareCopied ? (
-                <>
-                  <Check size={16} className="text-green-600" />
-                  <span className="text-sm">Copied</span>
-                </>
-              ) : (
-                <span className="text-sm">Share</span>
-              )}
-            </button>
-            
-            {/* Admin button - only shown to admin users */}
-            {isAdmin(userEmail) && (
-              <button
-                onClick={() => router.push("/admin")}
-                className="w-full rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 flex items-center justify-center gap-2"
-                aria-label="Admin panel"
-                title="Admin Panel"
-              >
-                <Settings size={16} />
-                <span className="text-sm">Admin</span>
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-      {/* Mobile menu button is now part of the CollapsibleConversationSidebar */}
-
-      {/* Conversation History Sidebar (hidden for public/shared views) */}
-      {!isPublicView && (
-        <CollapsibleConversationSidebar
-          userEmail={userEmail}
-          userId={userId}
-          displayName={displayName}
-          onLogout={handleLogout}
-          publicView={isPublicView}
-          onOpenChange={setIsHistoryOpen}
-        />
+    <div className="flex h-screen overflow-hidden bg-transparent relative">
+      {/* Sidebar Toggle Button - Always visible */}
+      {isAuthenticated && (
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="fixed z-50 top-4 p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black rounded-lg"
+          style={{
+            transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+            left: isSidebarOpen ? 'calc(16rem + 1rem)' : '1rem',
+            zIndex: 50
+          }}
+          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          <PanelsTopLeft size={20} />
+        </button>
       )}
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 flex min-h-0">
-          <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8">
+      {/* Sidebar */}
+      {isAuthenticated && (
+        <div 
+          className={`fixed z-40 h-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-white shadow-lg ${
+            isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
+          }`}
+          style={{
+            transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            bottom: 0
+          }}
+        >
+          <CollapsibleConversationSidebar
+            userEmail={userEmail}
+            userId={userId}
+            displayName={displayName}
+            onLogout={handleLogout}
+            publicView={isPublicView}
+            onOpenChange={handleSidebarOpenChange}
+            isOpen={isSidebarOpen}
+            onSetIsOpen={setIsSidebarOpen}
+          />
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div 
+        className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        style={{
+          marginLeft: isSidebarOpen ? '16rem' : '0',
+          width: '100%',
+          transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          maxWidth: '100%',
+          paddingLeft: '1rem',
+          paddingRight: '1rem',
+          position: 'relative'
+        }}
+      >
+        {/* Top-right controls */}
+        <div className="fixed top-4 right-4 flex flex-col items-end gap-2 z-40">
+          {isAuthenticated && (
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const state = useConversationStore.getState();
+                    const convId = state.currentConversationId;
+                    if (!convId) return;
+                    const res = await fetch(`/api/conversations/${convId}/share`, { method: 'POST' });
+                    if (!res.ok) throw new Error('Failed to mark conversation public');
+                    const shareUrl = `${window.location.origin}?conv=${convId}&public=true`;
+                    await navigator.clipboard.writeText(shareUrl);
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2000);
+                  } catch (err) {
+                    console.error('Error sharing full conversation:', err);
+                  }
+                }}
+                className="rounded-lg p-2 transition-all flex items-center gap-2 bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 text-black"
+                title="Share entire conversation"
+              >
+                {shareCopied ? (
+                  <>
+                    <Check size={16} className="text-green-600" />
+                    <span className="text-sm">Copied</span>
+                  </>
+                ) : (
+                  <span className="text-sm">Share</span>
+                )}
+              </button>
+              
+              {isAdmin(userEmail) && (
+                <button
+                  onClick={() => router.push("/admin")}
+                  className="w-full rounded-lg p-2 transition-all bg-[#eef0f5] border border-gray-200 hover:bg-gray-200 hover:border-gray-300 flex items-center justify-center gap-2"
+                  aria-label="Admin panel"
+                  title="Admin Panel"
+                >
+                  <Settings size={16} />
+                  <span className="text-sm">Admin</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex min-h-0 pt-16">
+          <div className="w-full px-4 sm:px-6 md:px-8 py-6" style={{
+            width: '100%',
+            maxWidth: '64rem',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '1rem',
+            paddingRight: '1rem',
+            transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+          }}>
             <ConfigLoader publicView={isPublicView}>
               <Assistant />
             </ConfigLoader>
