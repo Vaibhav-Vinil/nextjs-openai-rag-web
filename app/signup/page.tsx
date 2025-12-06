@@ -10,6 +10,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,11 +30,69 @@ export default function SignUpPage() {
     checkAuth();
   }, [router, supabase]);
 
+  const validatePhoneNumber = (phoneNumber: string): { isValid: boolean; error?: string } => {
+    // Remove all non-digit characters
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    // Check if the field is empty
+    if (!digitsOnly) {
+      return { 
+        isValid: false, 
+        error: 'Phone number is required' 
+      };
+    }
+    
+    // Check minimum length
+    if (digitsOnly.length < 5) {
+      return { 
+        isValid: false, 
+        error: 'Invalid phone number. Please enter at least 5 digits.' 
+      };
+    }
+    
+    if (digitsOnly.length > 15) {
+      return { 
+        isValid: false, 
+        error: 'Phone number is too long. Maximum 15 digits allowed.' 
+      };
+    }
+    
+    // Basic international phone number validation
+    const phoneRegex = /^[+\s\d\-()]{8,20}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      return { 
+        isValid: false, 
+        error: 'Please enter a valid phone number. You can use numbers, +, -, (, ), and spaces.' 
+      };
+    }
+    
+    return { isValid: true };
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPhone(value);
+    
+    // Validate the phone number
+    const { error } = validatePhoneNumber(value);
+    setPhoneError(error || '');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
     setLoading(true);
+    
+    // Validate phone number if provided
+    if (phone) {
+      const { isValid, error } = validatePhoneNumber(phone);
+      if (!isValid) {
+        setPhoneError(error || 'Please enter a valid phone number');
+        setLoading(false);
+        return;
+      }
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -57,11 +116,11 @@ export default function SignUpPage() {
       return;
     }
     
-    // Check for common TLDs to catch obvious typos
-    const tldRegex = /\.(com|org|net|io|co|uk|de|fr|in|au|ca|us|gov|edu|mil|biz|info|mobi|name|aero|jobs|museum)$/i;
+    // Basic domain format validation
     const domain = email.split('@')[1];
-    if (!tldRegex.test(domain)) {
-      setError("Please check the domain in your email address");
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+    if (!domainRegex.test(domain)) {
+      setError("Please enter a valid email address");
       setLoading(false);
       return;
     }
@@ -112,7 +171,7 @@ export default function SignUpPage() {
         }
       }
 
-      setSuccess("Account created successfully! Please check your email to verify your account.");
+      setSuccess("Account created successfully!");
       // Optionally redirect after a delay
       setTimeout(() => {
         router.push("/login");
@@ -179,20 +238,27 @@ export default function SignUpPage() {
           </div>
           <div>
             <label htmlFor="phone" className="block text-sm font-medium mb-2">
-              Phone Number
+              Phone Number <span className="text-red-500">*</span>
             </label>
             <Input
               id="phone"
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter your phone number"
-              className="w-full"
+              onChange={handlePhoneChange}
+              placeholder="e.g., +1 (123) 456-7890"
+              className={`w-full ${phoneError ? 'border-red-500' : ''}`}
+              required
             />
+            {phoneError && (
+              <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Include country code (e.g., +1, +44, +971)
+            </p>
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password
+              Password <span className="text-red-500">*</span>
             </label>
             <Input
               id="password"
