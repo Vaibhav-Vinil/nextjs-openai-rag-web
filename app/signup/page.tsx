@@ -107,19 +107,10 @@ export default function SignUpPage() {
       return;
     }
 
-    // Enhanced email validation
+    // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address (e.g., user@example.com)");
-      setLoading(false);
-      return;
-    }
-    
-    // Basic domain format validation
-    const domain = email.split('@')[1];
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
-    if (!domainRegex.test(domain)) {
-      setError("Please enter a valid email address");
       setLoading(false);
       return;
     }
