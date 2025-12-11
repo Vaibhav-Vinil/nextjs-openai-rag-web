@@ -117,7 +117,7 @@ export default function Main() {
       if (session) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
-        setDisplayName(session.user.user_metadata?.display_name || "");
+        setDisplayName(session.user.user_metadata?.full_name || session.user.user_metadata?.display_name || "");
       } else {
         // If this is a public/shared conversation view, don't force a login redirect.
         setIsAuthenticated(false);
@@ -138,7 +138,7 @@ export default function Main() {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
         setUserId(session.user.id);
-        setDisplayName(session.user.user_metadata?.display_name || "");
+        setDisplayName(session.user.user_metadata?.full_name || session.user.user_metadata?.display_name || "");
       } else {
         // Avoid redirecting to login when someone is viewing a public/shared conversation
         setIsAuthenticated(false);
