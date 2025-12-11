@@ -19,16 +19,59 @@ export default function SignUpPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  // Redirect if already authenticated
+  // Check authentication and verification status
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.push("/");
+    let intervalId: NodeJS.Timeout;
+
+    const checkAuthAndVerification = async () => {
+      try {
+        // First, get the current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          return;
+        }
+
+        // If we have a session, check if email is verified
+        if (session?.user) {
+          // Get fresh user data to ensure we have the latest email_confirmed_at
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError) {
+            console.error('Error getting user:', userError);
+            return;
+          }
+
+          // If email is verified, redirect to chat
+          if (user?.email_confirmed_at) {
+            // Clear any existing intervals
+            if (intervalId) clearInterval(intervalId);
+            
+            // Force a refresh of the page to ensure all auth state is properly set
+            window.location.href = '/';
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error in verification check:', error);
       }
     };
-    checkAuth();
-  }, [router, supabase]);
+
+    // Only start polling if we have a success message (i.e., after signup)
+    if (success) {
+      // Check immediately
+      checkAuthAndVerification();
+      
+      // Then check every 2 seconds (more frequent for better UX)
+      intervalId = setInterval(checkAuthAndVerification, 2000);
+    }
+
+    // Clean up interval on component unmount or when success changes
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [success]);
 
   const validatePhoneNumber = (phoneNumber: string): { isValid: boolean; error?: string } => {
     // Remove all non-digit characters
@@ -81,51 +124,39 @@ export default function SignUpPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
-    
-    // Validate phone number if provided (only on submit)
-    if (phone) {
-      const { isValid, error } = validatePhoneNumber(phone);
-      if (!isValid) {
-        setError(error || 'Please enter a valid phone number');
-        setLoading(false);
-        return;
-      }
-    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
       setError("Passwords do not match");
-      setLoading(false);
       return;
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      setLoading(false);
+    // Validate password strength
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long");
       return;
     }
 
-    // Basic email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address (e.g., user@example.com)");
-      setLoading(false);
+    // Validate phone number
+    const phoneValidation = validatePhoneNumber(phone);
+    if (!phoneValidation.isValid && phoneValidation.error) {
+      setError(phoneValidation.error);
       return;
     }
+
+    setLoading(true);
 
     try {
-      // First sign up the user
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      // Sign up the user with Supabase
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
-            display_name: displayName,
-            phone: phone // Keep in metadata as fallback
-          }
+            full_name: displayName,
+            phone: phone,
+          },
+          emailRedirectTo: `${window.location.origin}/verification/success`,
         },
       });
 
@@ -142,37 +173,14 @@ export default function SignUpPage() {
         throw new Error(signUpError.message.replace('AuthApiError: ', ''));
       }
 
-      // If we have a user and phone was provided, update the phone in auth.users
-      if (authData?.user && phone) {
-        try {
-          // Call the server-side function to update the phone
-          const { error: updateError } = await supabase.rpc('update_user_phone', {
-            user_id: authData.user.id,
-            phone_number: phone
-          });
-
-          if (updateError) {
-            console.warn("Could not update user phone:", updateError);
-            // Continue with signup even if phone update fails
-          }
-        } catch (rpcError) {
-          console.error("Error calling update_user_phone function:", rpcError);
-          // Continue with signup even if RPC call fails
-        }
-      }
-
-      // Sign in the user automatically after successful signup
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (signInError) {
-        throw new Error('Account created but failed to sign in automatically. Please log in manually.');
-      }
-
-      // Redirect to chat page after successful sign in
-      router.push('/');
+      // If we get here, signup was successful
+      // Clear sensitive data
+      setPassword("");
+      setConfirmPassword("");
+      
+      // Redirect to login page with verification message
+      router.push(`/login?verification_sent=true&email=${encodeURIComponent(email)}`);
+      
     } catch (error) {
       // Handle errors without showing them in the console
       if (error instanceof Error) {
@@ -195,17 +203,70 @@ export default function SignUpPage() {
         // Fallback for non-Error objects
         setError('We encountered an issue. Please check your details and try again.');
       }
-      
+    } finally {
       setLoading(false);
     }
   };
+
+  // Check URL for verification message
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('verification_sent') === 'true') {
+      setSuccess(`A verification link has been sent to ${params.get('email')}. Please check your email.`);
+      
+      // Clean up the URL
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+  }, []);
 
   if (success) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
         <div className="w-full max-w-md text-center bg-white p-8 rounded-lg shadow-md">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-lg font-medium">Setting up your account...</p>
+          <div className="mx-auto mb-4 text-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Check Your Email</h2>
+          <p className="text-gray-600 mb-6">{success}</p>
+          
+          <div className="bg-blue-50 p-4 rounded-md text-left mb-6">
+            <p className="text-sm text-blue-700">
+              <span className="font-medium">Didn't receive the email?</span> Check your spam folder or 
+              <button 
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const { error } = await supabase.auth.resend({
+                      type: 'signup',
+                      email: email,
+                    });
+                    if (error) throw error;
+                    setSuccess('Verification email resent successfully!');
+                  } catch (error) {
+                    setError('Failed to resend verification email. Please try again.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="text-blue-600 hover:text-blue-800 font-medium ml-1"
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Resend verification email'}
+              </button>
+            </p>
+          </div>
+          
+          <div className="mt-6">
+            <p className="text-sm text-gray-500">
+              Already verified? 
+              <a href="/login" className="text-blue-600 hover:text-blue-800 font-medium ml-1">
+                Go to login
+              </a>
+            </p>
+          </div>
           <p className="text-gray-600 mt-2">You&apos;ll be redirected to the chat shortly</p>
         </div>
       </div>
