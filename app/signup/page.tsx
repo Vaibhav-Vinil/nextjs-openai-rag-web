@@ -178,8 +178,14 @@ export default function SignUpPage() {
       setPassword("");
       setConfirmPassword("");
       
-      // Redirect to login page with verification message
-      router.push(`/login?verification_sent=true&email=${encodeURIComponent(email)}`);
+      // Check if this is a new user or existing user trying to sign up again
+      if (data?.user?.identities && data.user.identities.length === 0) {
+        // User already exists
+        setError('This email is already registered. Please use a different email or try logging in.');
+      } else {
+        // New user, show verification message
+        setSuccess(`A verification link has been sent to ${email}. Please check your email.`);
+      }
       
     } catch (error) {
       // Handle errors without showing them in the console
