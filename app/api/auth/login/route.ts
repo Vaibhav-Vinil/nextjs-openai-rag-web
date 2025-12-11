@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     
     // First, try to sign in to check credentials and get user data
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });

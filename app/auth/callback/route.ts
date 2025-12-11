@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   // Handle email verification
   if (type === 'signup' && token_hash) {
     try {
-      const supabase = createClient()
+      const supabase = await createClient()
       const { error: verifyError } = await supabase.auth.verifyOtp({
         token_hash,
         type: 'signup',
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 
   // Handle OAuth callbacks
   if (type === 'oauth') {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error: oauthError } = await supabase.auth.getSession()
     
     if (oauthError) {

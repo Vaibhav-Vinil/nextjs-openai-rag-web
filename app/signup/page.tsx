@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +15,6 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   // Check authentication and verification status
@@ -71,7 +69,7 @@ export default function SignUpPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [success]);
+  }, [success, supabase.auth]);
 
   const validatePhoneNumber = (phoneNumber: string): { isValid: boolean; error?: string } => {
     // Remove all non-digit characters
@@ -240,18 +238,18 @@ export default function SignUpPage() {
           
           <div className="bg-blue-50 p-4 rounded-md text-left mb-6">
             <p className="text-sm text-blue-700">
-              <span className="font-medium">Didn't receive the email?</span> Check your spam folder or 
+              <span className="font-medium">Didn&apos;t receive the email?</span> Check your spam folder or 
               <button 
                 onClick={async () => {
                   try {
                     setLoading(true);
-                    const { error } = await supabase.auth.resend({
+                    const { error: resendError } = await supabase.auth.resend({
                       type: 'signup',
                       email: email,
                     });
-                    if (error) throw error;
+                    if (resendError) throw resendError;
                     setSuccess('Verification email resent successfully!');
-                  } catch (error) {
+                  } catch {
                     setError('Failed to resend verification email. Please try again.');
                   } finally {
                     setLoading(false);

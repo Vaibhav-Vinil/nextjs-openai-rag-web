@@ -77,18 +77,18 @@ export default function LoginPage() {
 
     try {
       // First try to sign in
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) {
+      if (error) {
         // Check if the error is due to unverified email
-        if (signInError.message.toLowerCase().includes('email not confirmed')) {
+        if (error.message.toLowerCase().includes('email not confirmed')) {
           setRequiresVerification(true);
           setError('Please verify your email before logging in. Check your inbox for the verification link.');
         } else {
-          setError(signInError.message || "Invalid email or password");
+          setError(error.message || "Invalid email or password");
         }
         return;
       }
