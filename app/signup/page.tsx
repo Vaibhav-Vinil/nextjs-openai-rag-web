@@ -110,8 +110,15 @@ export default function SignUpPage() {
     return { isValid: true };
   };
 
+  const formatPhoneNumber = (phone: string): string => {
+    // Remove all non-digit characters except leading +
+    const digits = phone.replace(/[^0-9+]/g, '');
+    // Ensure there's a leading + for international numbers
+    return digits.startsWith('+') ? digits : `+${digits}`;
+  };
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers and specific phone number characters
+    // Allow numbers, +, -, (, ) and spaces
     const value = e.target.value.replace(/[^0-9+\-()\s]/g, '');
     setPhone(value);
     // Clear any previous error when user types
@@ -145,18 +152,46 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      // Sign up the user with Supabase
+      // Format phone number with proper international format
+      // Remove all non-digit characters first
+      let digits = phone.replace(/\D/g, '');
+      
+      // Ensure proper international format with single +
+      const formattedPhone = digits.startsWith('+') ? digits : `+${digits}`;
+      
+      // First sign up the user
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: displayName,
-            phone: phone,
+            phone: formattedPhone, // Keep in metadata as fallback
+            phone_verified: false,
+            email_verified: false,
           },
           emailRedirectTo: `${window.location.origin}/verification/success`,
         },
       });
+
+      // If we have a user and phone was provided, update the phone in auth.users
+      if (data?.user && formattedPhone) {
+        try {
+          // Call the server-side function to update the phone
+          const { error: updateError } = await supabase.rpc('update_user_phone', {
+            user_id: data.user.id,
+            phone_number: formattedPhone
+          });
+
+          if (updateError) {
+            console.warn("Could not update user phone:", updateError);
+            // Continue with signup even if phone update fails
+          }
+        } catch (rpcError) {
+          console.error("Error calling update_user_phone function:", rpcError);
+          // Continue with signup even if RPC call fails
+        }
+      }
 
       if (signUpError) {
         // Handle specific error cases with more descriptive messages
