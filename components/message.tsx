@@ -21,7 +21,13 @@ export const processMessageContent = (content: any[]): {
   
   // Helper function to clean up text after extracting product info
   const cleanText = (text: string, jsonString: string) => {
-    return text.replace(new RegExp(`\\s*${jsonString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'g'), '').trim();
+    // First clean the specific JSON string
+    let cleaned = text.replace(new RegExp(`\\s*${jsonString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'g'), '');
+    
+    // Remove any remaining file citation artifacts
+    cleaned = cleaned.replace(/\uE040filecite\uE042[^\uE040]+\uE041/g, '').trim();
+    
+    return cleaned;
   };
   
   // Try to find product image in annotations
@@ -66,6 +72,9 @@ export const processMessageContent = (content: any[]): {
     }
   }
 
+  // First clean up any file citation artifacts from the text
+  text = text.replace(/\uE040filecite\uE042[^\uE040]+\uE041/g, '');
+  
   // Process the text to find and handle image placeholders
   try {
     const parts: (string | React.ReactNode)[] = [];
@@ -110,7 +119,7 @@ export const processMessageContent = (content: any[]): {
             
             // Add image component at this position
             parts.push(
-              <div key={parts.length} className="my-4">
+              <div key={parts.length} className="my-4 flex justify-center">
                 <a 
                   href={productLink} 
                   target="_blank" 
