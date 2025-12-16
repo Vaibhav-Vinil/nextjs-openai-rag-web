@@ -68,25 +68,27 @@ function ApiCallCell({ toolCall }: ToolCallProps) {
   );
 }
 
-function FileSearchCell({ toolCall }: ToolCallProps) {
+function FileSearchCell({ toolCall }: { toolCall: ToolCallItem }) {
+  if (toolCall.status === 'completed') {
+    return null;
+  }
   return (
-    <div className="flex gap-2 items-center text-blue-500 mb-[-16px] ml-[-8px]">
-      <BookOpenText size={16} />
-      <div className="text-sm font-medium mb-0.5">
-        {toolCall.status === "completed"
-          ? "Searched files"
-          : "Searching files..."}
+    <div className="text-gray-500 text-sm mb-[-16px] ml-[-8px]">
+      <div className="after:content-['...'] after:inline-block after:w-4 after:text-left after:animate-ellipsis">
+        Searching
       </div>
     </div>
   );
 }
 
-function WebSearchCell() {
+function WebSearchCell({ toolCall }: { toolCall: ToolCallItem }) {
+  if (toolCall.status === 'completed') {
+    return null;
+  }
   return (
-    <div className="flex gap-2 items-center text-blue-500 mb-[-16px] ml-[-8px]">
-      <Globe size={16} />
-      <div className="text-sm font-medium">
-        Searching the web...
+    <div className="text-gray-500 text-sm mb-[-16px] ml-[-8px]">
+      <div className="after:content-['...'] after:inline-block after:w-4 after:text-left after:animate-ellipsis">
+        Searching
       </div>
     </div>
   );
@@ -222,7 +224,7 @@ export default function ToolCall({ toolCall }: ToolCallProps) {
       case "file_search_call":
         return <FileSearchCell toolCall={toolCall} />;
       case "web_search_call":
-        return <WebSearchCell />;
+        return <WebSearchCell toolCall={toolCall} />;
       case "mcp_call":
         return <McpCallCell toolCall={toolCall} />;
       case "code_interpreter_call":
