@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "pvAI - Powered by pvmarket",
   description: "Starter app for the OpenAI Responses API",
   icons: {
-    icon: "/PvChatbot-logo.png",
+    icon: "/PvChatbot-logo.ico",
   },
 };
 

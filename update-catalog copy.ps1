@@ -25,10 +25,13 @@ try {
         
         # Format the product URL
         $productUrl = if ($_.ProductNavigatePath) {
-            if ($_.ProductNavigatePath.StartsWith("/")) {
-                "https://pv.market" + $_.ProductNavigatePath
+            # Get the last segment of the path
+            $lastSlashIndex = $_.ProductNavigatePath.LastIndexOf('/')
+            if ($lastSlashIndex -ge 0) {
+                $slug = $_.ProductNavigatePath.Substring($lastSlashIndex + 1)
+                "https://pv.market/products/$slug"
             } else {
-                "https://pv.market/" + $_.ProductNavigatePath
+                "https://pv.market/products/$($_.ProductNavigatePath.Trim('/'))"
             }
         } else {
             $null

@@ -1,8 +1,8 @@
 import { MessageItem } from "@/lib/assistant";
-import React, { useState } from "react";
-import ReactMarkdown from "react-markdown";
+import React, { useState } from 'react';
+import { Copy, Check, Share2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Copy, Check, Share2 } from "lucide-react";
 import { INITIAL_MESSAGE } from "@/config/constants";
 
 // Function to process message content and extract product images
@@ -20,6 +20,7 @@ export const processMessageContent = (content: any[]): {
   const productImages: Array<{src: string; link: string; position: number}> = [];
   
   // Helper function to clean up text after extracting product info
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const cleanText = (text: string, jsonString: string) => {
     // First clean the specific JSON string
     let cleaned = text.replace(new RegExp(`\\s*${jsonString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'g'), '');
@@ -49,7 +50,7 @@ export const processMessageContent = (content: any[]): {
             }
           };
         }
-      } catch (e) {
+      } catch {
         // If full JSON parse fails, fall back to regex matching
         const imgMatch = productImgAnnotation.text.match(/"product_img"\s*:\s*"([^"]+)"/);
         const urlMatch = productImgAnnotation.text.match(/"product_url"\s*:\s*"([^"]+)"/);
@@ -95,7 +96,7 @@ export const processMessageContent = (content: any[]): {
           let imgData;
           try {
             imgData = JSON.parse(match[0]);
-          } catch (e) {
+          } catch {
             // If direct parsing fails, try to fix potential JSON issues
             const fixedJson = match[0]
               .replace(/([{\s,])(\w+)\s*:/g, '$1"$2":')
@@ -117,21 +118,31 @@ export const processMessageContent = (content: any[]): {
               productLink = `https://pv.market/${productLink.replace(/^\/+/, '')}`;
             }
             
-            // Add image component at this position
+            // Add image component at this position with browse button
             parts.push(
-              <div key={parts.length} className="my-4 flex justify-center">
-                <a 
-                  href={productLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-block"
-                >
-                  <img 
-                    src={imgData.product_img} 
-                    alt="Product" 
-                    className="max-w-full h-auto max-h-80 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow"
-                  />
-                </a>
+              <div key={parts.length} className="my-4">
+                <div className="flex flex-col items-center space-y-2">
+                  <a 
+                    href={productLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block"
+                  >
+                    <img 
+                      src={imgData.product_img} 
+                      alt="Product" 
+                      className="max-w-full h-auto max-h-80 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow object-contain"
+                    />
+                  </a>
+                  <a
+                    href={productLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  >
+                    Browse on pv.market
+                  </a>
+                </div>
               </div>
             );
             
@@ -195,8 +206,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
   
-  const { text, productImage, productImages } = processMessageContent(message.content);
-  const imagesToShow = productImages || (productImage ? [productImage] : []);
+  const { text } = processMessageContent(message.content);
 
   const handleCopy = async () => {
     // Convert text to string if it's a ReactNode array

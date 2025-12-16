@@ -110,6 +110,7 @@ export default function SignUpPage() {
     return { isValid: true };
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatPhoneNumber = (phone: string): string => {
     // Remove all non-digit characters except leading +
     const digits = phone.replace(/[^0-9+]/g, '');
@@ -153,11 +154,8 @@ export default function SignUpPage() {
 
     try {
       // Format phone number with proper international format
-      // Remove all non-digit characters first
-      let digits = phone.replace(/\D/g, '');
-      
-      // Ensure proper international format with single +
-      const formattedPhone = digits.startsWith('+') ? digits : `+${digits}`;
+      // Remove all non-digit characters first and ensure proper international format with single +
+      const formattedPhone = phone.replace(/\D/g, '').replace(/^\+?/, '+');
       
       // First sign up the user
       const { data, error: signUpError } = await supabase.auth.signUp({
