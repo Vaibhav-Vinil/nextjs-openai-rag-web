@@ -5,23 +5,131 @@ import remarkGfm from 'remark-gfm';
 import { Copy, Check, Share2 } from "lucide-react";
 import { INITIAL_MESSAGE } from "@/config/constants";
 
-// Function to remove inline citation links from text
-const removeInlineCitations = (text: string): string => {
-  // Remove markdown citation links like ([domain.com](url)) but preserve the line break
-  return text.replace(/\s*\(\[([^\]]+)\]\([^)]+\)\)(\s*\n)?/g, '$2');
+// Function to process message content and extract product images
+export const processMessageContent = (content: any[]): { text: string; productImage?: { src: string; link: string } } => {
+  if (!content || !content[0]) {
+    return { text: '' };
+  }
+  
+  let text = content[0]?.text || '';
+  let productImage: { src: string; link: string } | undefined = undefined;
+  
+  // Helper function to clean up text after extracting product info
+  const cleanText = (text: string, jsonString: string) => {
+    return text.replace(new RegExp(`\\s*${jsonString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'g'), '').trim();
+  };
+  
+  // Try to find product image in annotations
+  const productImgAnnotation = content[0]?.annotations?.find(
+    (a: any) => a.type === 'file_citation' && a.text?.includes('"product_img":')
+  );
+
+  if (productImgAnnotation) {
+    try {
+      // First try to parse the entire annotation as JSON
+      try {
+        const annotationData = JSON.parse(productImgAnnotation.text);
+        if (annotationData.product_img) {
+          return {
+            text,
+            productImage: {
+              src: annotationData.product_img,
+              link: annotationData.product_url || annotationData.product_link || ''
+            }
+          };
+        }
+      } catch (e) {
+        // If full JSON parse fails, fall back to regex matching
+        const imgMatch = productImgAnnotation.text.match(/"product_img"\s*:\s*"([^"]+)"/);
+        const urlMatch = productImgAnnotation.text.match(/"product_url"\s*:\s*"([^"]+)"/);
+        const linkMatch = productImgAnnotation.text.match(/"product_link"\s*:\s*"([^"]+)"/);
+        
+        if (imgMatch) {
+          // Prefer product_url, fall back to product_link, or use empty string
+          const link = (urlMatch && urlMatch[1]) || (linkMatch && linkMatch[1]) || '';
+          return {
+            text,
+            productImage: {
+              src: imgMatch[1],
+              link: link
+            }
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing product image from annotation:', e);
+    }
+  }
+
+  // Try to find product image in the text directly (JSON format)
+  const jsonMatch = text.match(/\{[^\{\}]*"product_img"[^\{\}]*\}/);
+  if (jsonMatch) {
+    try {
+      let imgData;
+      // First try to parse the JSON directly
+      try {
+        imgData = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        // If direct parsing fails, try to fix potential JSON issues
+        const fixedJson = jsonMatch[0]
+          .replace(/([{\s,])(\w+)\s*:/g, '$1"$2":')
+          .replace(/:\s*'([^']*)'/g, ': "$1"')
+          .replace(/,/g, ', ');
+        
+        console.log('Fixed JSON:', fixedJson);
+        imgData = JSON.parse(fixedJson);
+      }
+
+      if (imgData?.product_img) {
+        console.log('Available keys in imgData:', Object.keys(imgData));
+        
+        // Get the best available link - prefer product_url, fall back to product_link, or use empty string
+        let productLink = imgData.product_url || imgData.product_link || '';
+        
+        // If it's just a number, construct the URL with the ID (fallback)
+        if (/^\d+$/.test(productLink)) {
+          productLink = `https://pv.market/products/${productLink}`;
+        } 
+        // If it's not a full URL, make sure it's properly formatted
+        else if (productLink && !productLink.startsWith('http')) {
+          productLink = `https://pv.market/${productLink.replace(/^\/+/, '')}`;
+        }
+        
+        console.log('Final productLink:', productLink);
+        
+        // Clean up the text by removing the JSON string
+        const cleanedText = cleanText(text, jsonMatch[0]);
+        
+        return {
+          text: cleanedText,
+          productImage: {
+            src: imgData.product_img,
+            link: productLink
+          }
+        };
+      }
+    } catch (e) {
+      console.error('Error processing product image data:', e);
+    }
+  }
+  
+  // If we get here, either no image was found or there was an error
+  return { text };
 };
 
 interface MessageProps {
   message: MessageItem;
-  messageIndex?: number;
+  messageIndex: number;
 }
 
 const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
 
+  const { text, productImage } = processMessageContent(message.content);
+
   const handleCopy = async () => {
-    const text = removeInlineCitations(message.content[0].text as string);
+    const textToCopy = text;
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -30,7 +138,6 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
   const handleShare = async () => {
     try {
       // Create a persistent snippet on the server and return a short id.
-      const text = removeInlineCitations(message.content[0].text as string);
       const res = await fetch(`/api/snippets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -56,7 +163,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
               <div>
                 <div>
                   <ReactMarkdown>
-                    {removeInlineCitations(message.content[0].text as string)}
+                    {text}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -79,8 +186,24 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
                       ),
                     }}
                   >
-                    {removeInlineCitations(message.content[0].text as string)}
+                    {text}
                   </ReactMarkdown>
+                  {productImage && (
+                    <div className="mt-4">
+                      <a 
+                        href={productImage.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-block"
+                      >
+                        <img 
+                          src={productImage.src} 
+                          alt="Product" 
+                          className="max-w-full h-auto rounded-lg border border-gray-200 hover:shadow-lg transition-shadow"
+                        />
+                      </a>
+                    </div>
+                  )}
                 </div>
                 {/* Image display has been disabled */}
               </div>
