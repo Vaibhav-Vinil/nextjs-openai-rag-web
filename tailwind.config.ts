@@ -10,6 +10,17 @@ export default {
   ],
   theme: {
     extend: {
+      keyframes: {
+        ellipsis: {
+          '0%': { content: '""' },
+          '33%': { content: '"."' },
+          '66%': { content: '".."' },
+          '100%': { content: '"..."' },
+        },
+      },
+      animation: {
+        'ellipsis': 'ellipsis 1.5s steps(4, end) infinite',
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

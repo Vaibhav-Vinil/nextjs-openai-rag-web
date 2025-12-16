@@ -1,40 +1,235 @@
 import { MessageItem } from "@/lib/assistant";
-import React, { useState } from "react";
-import ReactMarkdown from "react-markdown";
+import React, { useState } from 'react';
+import { Copy, Check, Share2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Copy, Check, Share2 } from "lucide-react";
 import { INITIAL_MESSAGE } from "@/config/constants";
 
-// Function to remove inline citation links from text
-const removeInlineCitations = (text: string): string => {
-  // Remove markdown citation links like ([domain.com](url)) but preserve the line break
-  return text.replace(/\s*\(\[([^\]]+)\]\([^)]+\)\)(\s*\n)?/g, '$2');
-};
+// Function to process message content and extract product images
+export const processMessageContent = (content: any[]): { 
+  text: string | React.ReactNode[];
+  productImage?: { src: string; link: string }; 
+  productImages?: Array<{src: string; link: string; position: number}>;
+} => {
+  if (!content || !content[0]) {
+    return { text: '' };
+  }
+  
+  let text = content[0]?.text || '';
+  let productImage: { src: string; link: string } | undefined = undefined;
+  const productImages: Array<{src: string; link: string; position: number}> = [];
+  
+  // Helper function to clean up text after extracting product info
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const cleanText = (text: string, jsonString: string) => {
+    // First clean the specific JSON string
+    let cleaned = text.replace(new RegExp(`\\s*${jsonString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'g'), '');
+    
+    // Remove any remaining file citation artifacts
+    cleaned = cleaned.replace(/\uE040filecite\uE042[^\uE040]+\uE041/g, '').trim();
+    
+    return cleaned;
+  };
+  
+  // Try to find product image in annotations
+  const productImgAnnotation = content[0]?.annotations?.find(
+    (a: any) => a.type === 'file_citation' && a.text?.includes('"product_img":')
+  );
+
+  if (productImgAnnotation) {
+    try {
+      // First try to parse the entire annotation as JSON
+      try {
+        const annotationData = JSON.parse(productImgAnnotation.text);
+        if (annotationData.product_img) {
+          return {
+            text,
+            productImage: {
+              src: annotationData.product_img,
+              link: annotationData.product_url || annotationData.product_link || ''
+            }
+          };
+        }
+      } catch {
+        // If full JSON parse fails, fall back to regex matching
+        const imgMatch = productImgAnnotation.text.match(/"product_img"\s*:\s*"([^"]+)"/);
+        const urlMatch = productImgAnnotation.text.match(/"product_url"\s*:\s*"([^"]+)"/);
+        const linkMatch = productImgAnnotation.text.match(/"product_link"\s*:\s*"([^"]+)"/);
+        
+        if (imgMatch) {
+          // Prefer product_url, fall back to product_link, or use empty string
+          const link = (urlMatch && urlMatch[1]) || (linkMatch && linkMatch[1]) || '';
+          return {
+            text,
+            productImage: {
+              src: imgMatch[1],
+              link: link
+            }
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing product image from annotation:', e);
+    }
+  }
+
+  // First clean up any file citation artifacts from the text
+  text = text.replace(/\uE040filecite\uE042[^\uE040]+\uE041/g, '');
+  
+  // Process the text to find and handle image placeholders
+  try {
+    const parts: (string | React.ReactNode)[] = [];
+    let lastIndex = 0;
+    
+    // Find all image placeholders in the text
+    const imageMatches = [...text.matchAll(/\{[^\{\}]*"product_img"[^\{\}]*\}/g)];
+    
+    if (imageMatches.length > 0) {
+      for (const match of imageMatches) {
+        try {
+          // Add text before the match
+          if (match.index !== undefined && match.index > lastIndex) {
+            parts.push(text.substring(lastIndex, match.index));
+          }
+          
+          // Parse the image data
+          let imgData;
+          try {
+            imgData = JSON.parse(match[0]);
+          } catch {
+            // If direct parsing fails, try to fix potential JSON issues
+            const fixedJson = match[0]
+              .replace(/([{\s,])(\w+)\s*:/g, '$1"$2":')
+              .replace(/:\s*'([^']*)'/g, ': "$1"')
+              .replace(/,/g, ', ');
+            imgData = JSON.parse(fixedJson);
+          }
+          
+          if (imgData?.product_img) {
+            // Get the best available link - prefer product_url, fall back to product_link, or use empty string
+            let productLink = imgData.product_url || imgData.product_link || '';
+            
+            // If it's just a number, construct the URL with the ID (fallback)
+            if (/^\d+$/.test(productLink)) {
+              productLink = `https://pv.market/products/${productLink}`;
+            } 
+            // If it's not a full URL, make sure it's properly formatted
+            else if (productLink && !productLink.startsWith('http')) {
+              productLink = `https://pv.market/${productLink.replace(/^\/+/, '')}`;
+            }
+            
+            // Add image component at this position with browse button
+            parts.push(
+              <div key={parts.length} className="my-4">
+                <div className="flex flex-col items-center space-y-2">
+                  <a 
+                    href={productLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block"
+                  >
+                    <img 
+                      src={imgData.product_img} 
+                      alt="Product" 
+                      className="max-w-full h-auto max-h-80 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow object-contain"
+                    />
+                  </a>
+                  <a
+                    href={productLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  >
+                    Browse on pv.market
+                  </a>
+                </div>
+              </div>
+            );
+            
+            // Store the image data for backward compatibility
+            if (!productImage) {
+              productImage = {
+                src: imgData.product_img,
+                link: productLink
+              };
+            }
+            
+            productImages.push({
+              src: imgData.product_img,
+              link: productLink,
+              position: match.index || 0
+            });
+          }
+          
+          // Update the last index
+          if (match.index !== undefined) {
+            lastIndex = match.index + match[0].length;
+          }
+        } catch (e) {
+          console.error('Error processing image data:', e);
+          // If there's an error, include the original text
+          if (match.index !== undefined) {
+            parts.push(text.substring(lastIndex, match.index + match[0].length));
+            lastIndex = match.index + match[0].length;
+          }
+        }
+      }
+      
+      // Add any remaining text after the last match
+      if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+      }
+      
+      // If we found any product images, return the parts array
+      if (parts.length > 0) {
+        return {
+          text: parts,
+          productImage,
+          productImages
+        };
+      }
+    }
+  } catch (e) {
+    console.error('Error in processMessageContent:', e);
+  }
+  
+  // If we get here, either no image was found or there was an error
+  return { text };
+}
 
 interface MessageProps {
   message: MessageItem;
-  messageIndex?: number;
+  messageIndex: number;
 }
 
 const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  
+  const { text } = processMessageContent(message.content);
 
   const handleCopy = async () => {
-    const text = removeInlineCitations(message.content[0].text as string);
-    await navigator.clipboard.writeText(text);
+    // Convert text to string if it's a ReactNode array
+    const textToCopy = Array.isArray(text) 
+      ? text.map(part => typeof part === 'string' ? part : '').join('') 
+      : text;
+    await navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {
     try {
+      // Convert text to string if it's a ReactNode array
+      const contentToShare = Array.isArray(text)
+        ? text.map(part => typeof part === 'string' ? part : '').join('')
+        : text;
+      
       // Create a persistent snippet on the server and return a short id.
-      const text = removeInlineCitations(message.content[0].text as string);
       const res = await fetch(`/api/snippets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: text }),
+        body: JSON.stringify({ content: contentToShare }),
       });
       if (!res.ok) throw new Error("Failed to create snippet");
       const data = await res.json();
@@ -55,9 +250,13 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
             <div className="ml-4 rounded-2xl px-4 py-3 md:ml-24 bg-white/20 backdrop-blur-lg border border-white/30 text-stone-900 font-light shadow-lg">
               <div>
                 <div>
-                  <ReactMarkdown>
-                    {removeInlineCitations(message.content[0].text as string)}
-                  </ReactMarkdown>
+                  {typeof text === 'string' ? (
+                    <ReactMarkdown>
+                      {text}
+                    </ReactMarkdown>
+                  ) : (
+                    <div>{text}</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -69,36 +268,45 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
             <div className="mr-4 rounded-2xl px-4 py-3 md:mr-24 text-black bg-white/20 backdrop-blur-lg border border-white/30 font-light flex-1 shadow-lg">
               <div>
                 <div className="prose max-w-none">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      table: (props) => (
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full border border-gray-200" {...props} />
-                        </div>
-                      ),
-                      th: ({ node, ...props }) => (
-                        <th className="border border-gray-300 bg-gray-100 px-4 py-2 text-left font-semibold" {...props} />
-                      ),
-                      td: ({ node, ...props }) => (
-                        <td className="border border-gray-300 px-4 py-2" {...props} />
-                      ),
-                      tr: ({ node, ...props }) => (
-                        <tr className="hover:bg-gray-50" {...props} />
-                      ),
-                      img: ({ node, ...props }) => (
-                        <a href={props.src} target="_blank" rel="noopener noreferrer" className="block">
-                          <img 
-                            {...props} 
-                            className="mt-2 max-w-full cursor-pointer hover:opacity-90 transition-opacity"
-                            alt={props.alt || 'Image from web search'}
-                          />
-                        </a>
-                      ),
-                    }}
-                  >
-                    {removeInlineCitations(message.content[0].text as string)}
-                  </ReactMarkdown>
+                  {Array.isArray(text) ? (
+                    // If text is an array (contains React nodes), render them directly
+                    <div className="prose max-w-none">
+                      {text.map((part, i) => (
+                        <React.Fragment key={i}>
+                          {typeof part === 'string' ? (
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                table: (props) => (
+                                  <div className="overflow-x-auto">
+                                    <table className="min-w-full border border-gray-200" {...props} />
+                                  </div>
+                                ),
+                              }}
+                            >
+                              {part}
+                            </ReactMarkdown>
+                          ) : (
+                            part
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  ) : (
+                    // Fallback for plain text (shouldn't happen with the new processing)
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        table: (props) => (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full border border-gray-200" {...props} />
+                          </div>
+                        ),
+                      }}
+                    >
+                      {text}
+                    </ReactMarkdown>
+                  )}
                 </div>
                 {/* Image display has been disabled */}
               </div>

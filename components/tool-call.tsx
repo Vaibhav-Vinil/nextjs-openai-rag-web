@@ -1,7 +1,7 @@
 import React from "react";
 
 import { ToolCallItem } from "@/lib/assistant";
-import { BookOpenText, Clock, Zap, Code2, Download, Globe } from "lucide-react";
+import { Clock, Zap } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { coy } from "react-syntax-highlighter/dist/esm/styles/prism";
 
@@ -68,25 +68,27 @@ function ApiCallCell({ toolCall }: ToolCallProps) {
   );
 }
 
-function FileSearchCell({ toolCall }: ToolCallProps) {
+function FileSearchCell({ toolCall }: { toolCall: ToolCallItem }) {
+  if (toolCall.status === 'completed') {
+    return null;
+  }
   return (
-    <div className="flex gap-2 items-center text-blue-500 mb-[-16px] ml-[-8px]">
-      <BookOpenText size={16} />
-      <div className="text-sm font-medium mb-0.5">
-        {toolCall.status === "completed"
-          ? "Searched files"
-          : "Searching files..."}
+    <div className="text-gray-500 text-sm mb-[-16px] ml-[-8px]">
+      <div className="after:content-['...'] after:inline-block after:w-4 after:text-left after:animate-ellipsis">
+        Searching
       </div>
     </div>
   );
 }
 
-function WebSearchCell() {
+function WebSearchCell({ toolCall }: { toolCall: ToolCallItem }) {
+  if (toolCall.status === 'completed') {
+    return null;
+  }
   return (
-    <div className="flex gap-2 items-center text-blue-500 mb-[-16px] ml-[-8px]">
-      <Globe size={16} />
-      <div className="text-sm font-medium">
-        Searching the web...
+    <div className="text-gray-500 text-sm mb-[-16px] ml-[-8px]">
+      <div className="after:content-['...'] after:inline-block after:w-4 after:text-left after:animate-ellipsis">
+        Searching
       </div>
     </div>
   );
@@ -164,7 +166,7 @@ function CodeInterpreterCell({ toolCall }: ToolCallProps) {
       <div className="flex flex-col text-sm rounded-[16px]">
         <div className="font-semibold p-3 pl-0 text-gray-700 rounded-b-none flex gap-2">
           <div className="flex gap-2 items-center text-blue-500 ml-[-8px]">
-            <Code2 size={16} />
+            <Zap size={16} />
             <div className="text-sm font-medium">
               {toolCall.status === "completed"
                 ? "Code executed"
@@ -204,7 +206,7 @@ function CodeInterpreterCell({ toolCall }: ToolCallProps) {
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#ededed] text-xs text-zinc-500"
               >
                 {f.filename || f.file_id}
-                <Download size={12} />
+                <span>↓</span>
               </a>
             ))}
           </div>
@@ -222,7 +224,7 @@ export default function ToolCall({ toolCall }: ToolCallProps) {
       case "file_search_call":
         return <FileSearchCell toolCall={toolCall} />;
       case "web_search_call":
-        return <WebSearchCell />;
+        return <WebSearchCell toolCall={toolCall} />;
       case "mcp_call":
         return <McpCallCell toolCall={toolCall} />;
       case "code_interpreter_call":
