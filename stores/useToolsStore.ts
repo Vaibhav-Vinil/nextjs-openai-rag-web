@@ -83,7 +83,8 @@ const useToolsStore = create<StoreState>()(
         allowed_tools: "",
         skip_approval: true,
       },
-      fileSearchEnabled: false,
+      fileSearchEnabled: true,
+      previousFileSearchEnabled: true,
       setFileSearchEnabled: (enabled) => {
         set({ fileSearchEnabled: enabled });
       },

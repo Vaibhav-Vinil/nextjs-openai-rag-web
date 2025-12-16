@@ -39,7 +39,6 @@ export default function FileSearchSetup() {
             name: "",
           });
         }
-        setFileSearchEnabled(false);
         setNewStoreId("");
       }
     } catch (error) {
