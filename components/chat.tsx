@@ -18,12 +18,14 @@ interface ChatProps {
   items: Item[];
   onSendMessage: (message: string) => void;
   onApprovalResponse: (approve: boolean, id: string) => void;
+  readOnly?: boolean;
 }
 
 const Chat: React.FC<ChatProps> = ({
   items,
   onSendMessage,
   onApprovalResponse,
+  readOnly = false,
 }) => {
   const itemsEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +50,9 @@ const Chat: React.FC<ChatProps> = ({
   const [isScrolled, setIsScrolled] = useState(false);
 
   const sendMessage = useCallback(async () => {
+    // In read-only mode, never send messages
+    if (readOnly) return;
+
     if (!inputMessageText.trim()) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -62,7 +67,7 @@ const Chat: React.FC<ChatProps> = ({
       console.error("Error checking auth before send:", err);
       setShowLoginPrompt(true);
     }
-  }, [inputMessageText, onSendMessage, supabase]);
+  }, [inputMessageText, onSendMessage, supabase, readOnly]);
 
   const getItemKey = useCallback(
     (item: Item, index: number) => {
@@ -86,7 +91,7 @@ const Chat: React.FC<ChatProps> = ({
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (event.key === "Enter" && !event.shiftKey && !isComposing) {
+      if (!readOnly && event.key === "Enter" && !event.shiftKey && !isComposing) {
         event.preventDefault();
         void sendMessage();
       }
@@ -201,17 +206,19 @@ const Chat: React.FC<ChatProps> = ({
                     tabIndex={0}
                     dir="auto"
                     rows={2}
-                    placeholder="Message..."
+                    placeholder={readOnly ? "Read-only admin view – chatting is disabled" : "Message..."}
                     className="mb-2 resize-none border-0 focus:outline-none text-sm bg-transparent px-0 pb-6 pt-2"
                     value={inputMessageText}
                     onChange={(e) => setinputMessageText(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onCompositionStart={() => setIsComposing(true)}
                     onCompositionEnd={() => setIsComposing(false)}
+                    readOnly={readOnly}
+                    disabled={readOnly}
                   />
                 </div>
                 <button
-                  disabled={!inputMessageText}
+                  disabled={!inputMessageText || readOnly}
                   data-testid="send-button"
                   className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black disabled:bg-[#D7D7D7] disabled:text-[#f4f4f4] disabled:hover:opacity-100"
                   onClick={() => {

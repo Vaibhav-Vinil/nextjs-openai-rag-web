@@ -91,6 +91,27 @@ export async function listConversations(): Promise<Conversation[]> {
   }
 }
 
+// List all conversations for a specific user (admin view)
+export async function listUserConversationsForAdmin(
+  userId: string
+): Promise<Conversation[]> {
+  try {
+    const response = await fetch(`/admin/api/users/${userId}/conversations`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Error listing user conversations for admin:", error);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.conversations || [];
+  } catch (error) {
+    console.error("Error listing user conversations for admin:", error);
+    return [];
+  }
+}
+
 // Delete conversation
 export async function deleteConversation(
   conversationId: string

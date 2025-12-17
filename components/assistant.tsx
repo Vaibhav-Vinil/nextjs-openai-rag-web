@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Chat from "./chat";
 import useConversationStore from "@/stores/useConversationStore";
 import { Item, processMessages } from "@/lib/assistant";
@@ -7,6 +7,7 @@ import { saveConversation } from "@/lib/conversations";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Assistant() {
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const { 
     chatMessages, 
     conversationItems,
@@ -16,6 +17,14 @@ export default function Assistant() {
     setAssistantLoading,
     setCurrentConversationId 
   } = useConversationStore();
+
+  // Detect admin_view mode from URL so we can show a read-only chat
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const adminView = params.get("admin_view") === "true";
+    setIsReadOnly(adminView);
+  }, []);
 
   // Debounce save function
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -74,6 +83,9 @@ export default function Assistant() {
   }, [conversationItems.length, chatMessages.length]);
 
   const handleSendMessage = async (message: string) => {
+    // In read-only admin view, do not allow sending messages
+    if (isReadOnly) return;
+
     if (!message.trim()) return;
 
     const userItem: Item = {
@@ -119,6 +131,7 @@ export default function Assistant() {
         items={chatMessages}
         onSendMessage={handleSendMessage}
         onApprovalResponse={handleApprovalResponse}
+        readOnly={isReadOnly}
       />
     </div>
   );
