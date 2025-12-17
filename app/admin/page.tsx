@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import ToolsPanel from "@/components/tools-panel";
 import AdminUtilities from "@/components/admin-utilities";
+import AdminUsersTable from "@/components/admin-users-table";
 import { isAdmin } from "@/config/admin-emails";
 import { Shield, ArrowLeft } from "lucide-react";
 
@@ -115,7 +116,20 @@ export default function AdminPage() {
 
       {/* Tools Panel - Full Width */}
       <div className="flex-1 pt-20">
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <div className="max-w-6xl mx-auto p-6 space-y-6">
+          {/* Users with Chat History */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-900">Users with Chat History</h1>
+              <p className="text-gray-600 mt-2">
+                View and manage users who have chatted in the system
+              </p>
+            </div>
+            <div className="p-6">
+              <AdminUsersTable />
+            </div>
+          </div>
+
           {/* Admin Utilities - Reset Credits */}
           <div className="bg-white rounded-lg shadow-lg border border-gray-200">
             <div className="p-6 border-b border-gray-200">

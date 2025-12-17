@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Chat from "./chat";
 import useConversationStore from "@/stores/useConversationStore";
 import { Item, processMessages } from "@/lib/assistant";
@@ -7,6 +7,7 @@ import { saveConversation } from "@/lib/conversations";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Assistant() {
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const { 
     chatMessages, 
     conversationItems,
@@ -17,27 +18,48 @@ export default function Assistant() {
     setCurrentConversationId 
   } = useConversationStore();
 
+  // Detect admin_view mode from URL so we can show a read-only chat
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const adminView = params.get("admin_view") === "true";
+    setIsReadOnly(adminView);
+  }, []);
+
   // Debounce save function
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveConversationDebounced = async () => {
+    // Don't save in read-only mode (admin view)
+    if (isReadOnly) {
+      return;
+    }
 
-  const autoSaveConversation = async () => {
-    // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Debounce save by 2 seconds after last change
-    saveTimeoutRef.current = setTimeout(async () => {
-      // Don't save if conversation is empty (only has initial message)
-      if (conversationItems.length === 0) {
+    // Don't save if there are no messages
+    if (chatMessages.length === 0) {
+      return;
+    }
+
+    // Check if user is authenticated before saving
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // No authenticated session — skip saving for anonymous users.
         return;
       }
+    } catch {
+      // If the auth check fails for any reason, don't attempt to save to avoid 401 noise.
+      return;
+    }
 
-      // Only attempt to save when a user session exists. Anonymous viewers should not trigger saves.
+    saveTimeoutRef.current = setTimeout(async () => {
       try {
         const supabase = createClient();
-        const sessionResponse = await supabase.auth.getSession();
-        const session = (sessionResponse as any)?.data?.session;
+        const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           // No authenticated session — skip saving for anonymous users.
           return;
@@ -47,14 +69,19 @@ export default function Assistant() {
         return;
       }
 
-      const savedId = await saveConversation(
-        conversationItems,
-        chatMessages,
-        currentConversationId || null
-      );
+      try {
+        const savedId = await saveConversation(
+          conversationItems,
+          chatMessages,
+          currentConversationId || null
+        );
 
-      if (savedId && savedId !== currentConversationId) {
-        setCurrentConversationId(savedId);
+        if (savedId && savedId !== currentConversationId) {
+          setCurrentConversationId(savedId);
+        }
+      } catch (error) {
+        console.error('Error saving conversation:', error);
+        // Don't rethrow the error to prevent unhandled promise rejections
       }
     }, 2000);
   };
@@ -62,7 +89,7 @@ export default function Assistant() {
   // Auto-save when conversation changes
   useEffect(() => {
     if (conversationItems.length > 0) {
-      autoSaveConversation();
+      saveConversationDebounced();
     }
 
     return () => {
@@ -74,6 +101,9 @@ export default function Assistant() {
   }, [conversationItems.length, chatMessages.length]);
 
   const handleSendMessage = async (message: string) => {
+    // In read-only admin view, do not allow sending messages
+    if (isReadOnly) return;
+
     if (!message.trim()) return;
 
     const userItem: Item = {
@@ -119,6 +149,7 @@ export default function Assistant() {
         items={chatMessages}
         onSendMessage={handleSendMessage}
         onApprovalResponse={handleApprovalResponse}
+        readOnly={isReadOnly}
       />
     </div>
   );

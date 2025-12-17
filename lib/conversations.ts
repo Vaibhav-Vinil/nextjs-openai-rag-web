@@ -35,8 +35,29 @@ export async function saveConversation(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Error saving conversation:", error);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        // Try to parse the error response as JSON
+        const errorData = await response.json();
+        console.error("Error saving conversation:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          url: url
+        });
+        errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+      } catch (e) {
+        // If JSON parsing fails, get the text response
+        const text = await response.text();
+        console.error("Error saving conversation (non-JSON response):", {
+          status: response.status,
+          statusText: response.statusText,
+          responseText: text,
+          url: url
+        });
+        errorMessage = text || response.statusText;
+      }
+      console.error("Error saving conversation:", errorMessage);
       return null;
     }
 
@@ -50,21 +71,35 @@ export async function saveConversation(
 
 // Load conversation from Supabase
 export async function loadConversation(
-  conversationId: string
+  conversationId: string,
+  isAdminView: boolean = false
 ): Promise<ConversationData | null> {
   try {
-    const response = await fetch(`/api/conversations/${conversationId}`);
+    const url = isAdminView 
+      ? `/admin/api/conversations/view/${conversationId}`
+      : `/api/conversations/${conversationId}`;
+
+    const response = await fetch(url);
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       console.error("Error loading conversation:", error);
       return null;
     }
 
     const data = await response.json();
+    
+    // Handle both regular and admin API response formats
+    const conversation = data.conversation || data;
+    
+    if (!conversation) {
+      console.error("No conversation data found in response:", data);
+      return null;
+    }
+
     return {
-      conversation_items: data.conversation.conversation_items,
-      chat_messages: data.conversation.chat_messages,
+      conversation_items: conversation.conversation_items || [],
+      chat_messages: conversation.chat_messages || [],
     };
   } catch (error) {
     console.error("Error loading conversation:", error);
@@ -87,6 +122,27 @@ export async function listConversations(): Promise<Conversation[]> {
     return data.conversations || [];
   } catch (error) {
     console.error("Error listing conversations:", error);
+    return [];
+  }
+}
+
+// List all conversations for a specific user (admin view)
+export async function listUserConversationsForAdmin(
+  userId: string
+): Promise<Conversation[]> {
+  try {
+    const response = await fetch(`/admin/api/users/${userId}/conversations`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Error listing user conversations for admin:", error);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.conversations || [];
+  } catch (error) {
+    console.error("Error listing user conversations for admin:", error);
     return [];
   }
 }

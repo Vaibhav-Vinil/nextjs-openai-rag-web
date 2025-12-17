@@ -19,12 +19,29 @@ export async function GET(
 
     const { id } = await params;
     
-    const { data, error } = await supabase
-      .from("conversations")
-      .select("*")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .single();
+    // First check if user is admin
+    const { data: adminData, error: adminError } = await supabase.rpc('is_admin');
+    const isAdmin = adminData || false;
+
+    let data, error;
+    
+    if (isAdmin) {
+      // Use the admin function that bypasses RLS
+      const result = await supabase
+        .rpc('get_conversation_for_admin', { p_conversation_id: id });
+      data = result.data;
+      error = result.error;
+    } else {
+      // Regular user access with RLS
+      const result = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) {
       if (error.code === "PGRST116") {

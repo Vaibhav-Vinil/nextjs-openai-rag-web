@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare, LogOut, X, Check, Search, Trash2, Share2 } from "lucide-react";
 import Image from "next/image";
 import QueryLimitDisplay from "./query-limit-display";
-import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation } from "@/lib/conversations";
+import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation, listUserConversationsForAdmin } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -15,9 +15,11 @@ interface ConversationHistoryProps {
   displayName?: string;
   onLogout?: () => void;
   publicView?: boolean;
+  // When set (admin view), only show this user's conversations
+  adminViewUserId?: string | null;
 }
 
-export default function ConversationHistory({ userEmail, userId, displayName, onLogout, publicView }: ConversationHistoryProps) {
+export default function ConversationHistory({ userEmail, userId, displayName, onLogout, publicView, adminViewUserId }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,23 +27,31 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
 
   const fetchConversations = async () => {
     setLoading(true);
-    const convs = await listConversations();
+    let convs: Conversation[] = [];
+
+    // In admin_view mode with a target user, fetch that user's conversations
+    if (adminViewUserId) {
+      convs = await listUserConversationsForAdmin(adminViewUserId);
+    } else {
+      convs = await listConversations();
+    }
+
     setConversations(convs);
     setLoading(false);
   };
 
-    const router = useRouter();
+  const router = useRouter();
 
-    useEffect(() => {
-      // If this is a public view and there is no authenticated user,
-      // skip fetching protected conversation lists to avoid 401s.
-      if (publicView && !userEmail) {
-        setLoading(false);
-        return;
-      }
+  useEffect(() => {
+    // If this is a public view and there is no authenticated user,
+    // skip fetching protected conversation lists to avoid 401s.
+    if (publicView && !userEmail) {
+      setLoading(false);
+      return;
+    }
 
-      fetchConversations();
-    }, [publicView, userEmail]);
+    fetchConversations();
+  }, [publicView, userEmail, adminViewUserId]);
 
   // Search state with caching
   const [searchResults, setSearchResults] = useState<Conversation[]>([]);
@@ -170,6 +180,10 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
   };
 
   const handleNewConversation = () => {
+    // In admin view of another user's history, do not allow creating new conversations
+    if (adminViewUserId) {
+      return;
+    }
     // If this is a public/shared view and the visitor is not signed in,
     // prompt them to sign up instead of attempting to fetch or create
     // protected resources which would result in 401 errors.
@@ -185,12 +199,21 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
 
   const handleLoadConversation = async (id: string) => {
     setConversationLoading(true);
-    const data = await loadConversation(id);
-    if (data) {
-      loadConv(data.conversation_items, data.chat_messages, id);
-      setCurrentConversationId(id);
+    try {
+      // Pass isAdminView=true when in admin view
+      const isAdminView = !!adminViewUserId;
+      const data = await loadConversation(id, isAdminView);
+      if (data) {
+        loadConv(data.conversation_items, data.chat_messages, id);
+        setCurrentConversationId(id);
+      } else {
+        console.error('Failed to load conversation data');
+      }
+    } catch (error) {
+      console.error('Error in handleLoadConversation:', error);
+    } finally {
+      setConversationLoading(false);
     }
-    setConversationLoading(false);
   };
 
   const [sharedConversationId, setSharedConversationId] = useState<string | null>(null);
@@ -294,14 +317,16 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
           </div>
         </div>
         
-        <Button
-          onClick={handleNewConversation}
-          className="w-full flex items-center gap-2 bg-black/5 backdrop-blur-sm border border-black/10 hover:bg-black/10 hover:border-black/20 text-black/80 hover:text-black transition-all"
-          variant="outline"
-        >
-          <Plus size={16} />
-          New Conversation
-        </Button>
+        {!adminViewUserId && (
+          <Button
+            onClick={handleNewConversation}
+            className="w-full flex items-center gap-2 bg-black/5 backdrop-blur-sm border border-black/10 hover:bg-black/10 hover:border-black/20 text-black/80 hover:text-black transition-all"
+            variant="outline"
+          >
+            <Plus size={16} />
+            New Conversation
+          </Button>
+        )}
       </div>
       
       <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
@@ -346,29 +371,31 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
                         {format(new Date(conv.updated_at), "MMM d, h:mm a")}
                       </p>
                     </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={(e) => handleShareConversation(conv.id, e)}
-                        className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-blue-500/20 backdrop-blur-sm hover:backdrop-blur-md text-black"
-                        title={sharedConversationId === conv.id ? "Link copied!" : "Share conversation"}
-                      >
-                        {sharedConversationId === conv.id ? (
-                          <Check size={14} className="text-green-400" />
-                        ) : (
-                          <Share2 size={14} className="text-blue-400" />
-                        )}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteConversation(conv.id, e);
-                        }}
-                        className="text-gray-600 hover:text-black hover:bg-red-500/20 p-1.5 -mr-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm hover:backdrop-blur-md"
-                        title="Delete conversation"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    {!adminViewUserId && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => handleShareConversation(conv.id, e)}
+                          className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-blue-500/20 backdrop-blur-sm hover:backdrop-blur-md text-black"
+                          title={sharedConversationId === conv.id ? "Link copied!" : "Share conversation"}
+                        >
+                          {sharedConversationId === conv.id ? (
+                            <Check size={14} className="text-green-400" />
+                          ) : (
+                            <Share2 size={14} className="text-blue-400" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteConversation(conv.id, e);
+                          }}
+                          className="text-gray-600 hover:text-black hover:bg-red-500/20 p-1.5 -mr-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm hover:backdrop-blur-md"
+                          title="Delete conversation"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

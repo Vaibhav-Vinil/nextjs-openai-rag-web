@@ -17,7 +17,8 @@ function CollapsibleConversationSidebar({
   publicView,
   onOpenChange,
   isOpen: externalIsOpen,
-  onSetIsOpen
+  onSetIsOpen,
+  adminViewUserId,
 }: {
   userEmail: string;
   userId: string;
@@ -27,6 +28,7 @@ function CollapsibleConversationSidebar({
   onOpenChange?: (isOpen: boolean) => void;
   isOpen: boolean;
   onSetIsOpen: (isOpen: boolean) => void;
+  adminViewUserId?: string | null;
 }) {
 
   useEffect(() => {
@@ -63,7 +65,8 @@ function CollapsibleConversationSidebar({
             userId={userId} 
             displayName={displayName}
             onLogout={onLogout} 
-            publicView={publicView} 
+          publicView={publicView}
+          adminViewUserId={adminViewUserId}
           />
         </div>
       </div>
@@ -94,6 +97,7 @@ export default function Main() {
   const [userId, setUserId] = useState<string>("");
   const [displayName, setDisplayName] = useState<string>("");
   const [shareCopied, setShareCopied] = useState(false);
+  const [adminViewUserId, setAdminViewUserId] = useState<string | null>(null);
   
   // Handle sidebar open/close state
   const handleSidebarOpenChange = useCallback((open: boolean) => {
@@ -172,6 +176,8 @@ export default function Main() {
     const conversationId = urlParams.get("conv");
     const messageIndex = urlParams.get("msg");
     const isPublic = urlParams.get("public") === "true";
+    const isAdminView = urlParams.get("admin_view") === "true";
+    const viewUserId = urlParams.get("view_user_id");
     const snippet = urlParams.get("snippet");
     const snippetId = urlParams.get("snippetId");
 
@@ -264,7 +270,18 @@ export default function Main() {
         try {
           let data;
           
-          if (isPublic) {
+          if (isAdminView) {
+            // Use admin API endpoint to view any conversation
+            const response = await fetch(`/admin/api/conversations/view/${conversationId}`);
+            if (!response.ok) {
+              throw new Error('Conversation not found or unauthorized');
+            }
+            const result = await response.json();
+            data = {
+              conversation_items: result.conversation.conversation_items,
+              chat_messages: result.conversation.chat_messages
+            };
+          } else if (isPublic) {
             // Use public API endpoint (no authentication required)
             const response = await fetch(`/api/share/${conversationId}`);
             if (!response.ok) {
@@ -283,13 +300,13 @@ export default function Main() {
           
           if (data) {
             const { loadConversation, setCurrentConversationId } = useConversationStore.getState();
-            // If this is a public/shared conversation, load it into the UI
+            // If this is a public/shared conversation or admin view, load it into the UI
             // as a new (unsaved) conversation for the current user by
             // not setting the currentConversationId. This prevents the
             // client from attempting to update (PUT) another user's
             // conversation when auto-saving. The user can then save
             // (POST) to create their own copy.
-            if (isPublic) {
+            if (isPublic || isAdminView) {
               loadConversation(data.conversation_items, data.chat_messages, null as any);
               setCurrentConversationId(null);
             } else {
@@ -310,6 +327,13 @@ export default function Main() {
       loadSharedConversation();
       // Keep the `conv` URL params intact so the shared link persists
       // in the address bar instead of navigating back to the base URL.
+    }
+
+    // In admin view, remember which user's history we are inspecting
+    if (isAdminView && viewUserId) {
+      setAdminViewUserId(viewUserId);
+    } else {
+      setAdminViewUserId(null);
     }
   }, [router, isPublicView]);
 
@@ -390,6 +414,7 @@ export default function Main() {
             onOpenChange={handleSidebarOpenChange}
             isOpen={isSidebarOpen}
             onSetIsOpen={setIsSidebarOpen}
+            adminViewUserId={adminViewUserId}
           />
         </div>
       )}
