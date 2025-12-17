@@ -11,8 +11,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get pagination parameters
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = 10;
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize - 1;
+
     // Get metadata for all conversations via a SECURITY DEFINER function
-    // This bypasses RLS so admins can see all users' conversations.
     const { data: conversations, error: convError } = await supabase.rpc(
       'get_all_conversations_metadata'
     );
@@ -34,8 +40,22 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Fetch ALL users with basic metadata using the database function
-    const { data: userData, error: userError } = await supabase.rpc('get_all_users_with_metadata');
+    // First, get the total count of users from the function
+    const { data: allUsers, count: totalCount, error: countError } = await supabase
+      .rpc('get_all_users_with_metadata');
+    
+    if (countError) {
+      console.error('Error counting users:', countError);
+      return NextResponse.json({ 
+        error: 'Failed to count users',
+        details: countError.message 
+      }, { status: 500 });
+    }
+
+    // Then fetch the paginated users
+    const { data: userData, error: userError } = await supabase
+      .rpc('get_all_users_with_metadata')
+      .range(startIndex, endIndex);
 
     if (userError) {
       console.error('Error fetching user data:', userError);
@@ -45,8 +65,7 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Combine user data with conversation info. This will return all users,
-    // and only those who have chatted will have a latest_conversation_id.
+    // Combine user data with conversation info
     const usersWithChats = (userData || []).map((user: any) => {
       const convInfo = userConversationMap.get(user.id);
       return {
@@ -60,7 +79,15 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ users: usersWithChats });
+    return NextResponse.json({ 
+      users: usersWithChats,
+      pagination: {
+        total: Array.isArray(allUsers) ? allUsers.length : 0,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil((Array.isArray(allUsers) ? allUsers.length : 0) / pageSize))
+      }
+    });
   } catch (error) {
     console.error('Error in GET users:', error);
     return NextResponse.json(

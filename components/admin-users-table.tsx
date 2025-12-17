@@ -15,22 +15,38 @@ interface UserWithChat {
   last_chat_at: string | null;
 }
 
+interface PaginationInfo {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export default function AdminUsersTable() {
   const [users, setUsers] = useState<UserWithChat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+    totalPages: 1
+  });
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = 1) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/admin/api/users");
+      const response = await fetch(`/admin/api/users?page=${page}`);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to fetch users");
       }
       const data = await response.json();
       setUsers(data.users || []);
+      if (data.pagination) {
+        setPagination(data.pagination);
+      }
     } catch (err) {
       console.error("Error fetching users:", err);
       setError(err instanceof Error ? err.message : "Failed to load users");
@@ -39,8 +55,14 @@ export default function AdminUsersTable() {
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchUsers(newPage);
+    }
+  };
+
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(1);
   }, []);
 
   const handleViewChat = async (userId: string) => {
@@ -84,7 +106,7 @@ export default function AdminUsersTable() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <Button
-            onClick={fetchUsers}
+            onClick={() => fetchUsers(pagination.page)}
             variant="outline"
             className="mt-2"
             size="sm"
@@ -112,11 +134,11 @@ export default function AdminUsersTable() {
         <div>
           <h3 className="text-lg font-medium">Users with Chat History</h3>
           <p className="text-sm text-gray-600 mt-1">
-            {users.length} user{users.length !== 1 ? "s" : ""} found
+            Page {pagination.page} of {pagination.totalPages} • {pagination.total} total users
           </p>
         </div>
         <Button
-          onClick={fetchUsers}
+          onClick={() => fetchUsers(pagination.page)}
           variant="outline"
           size="sm"
           disabled={isLoading}
@@ -197,6 +219,31 @@ export default function AdminUsersTable() {
           </table>
         </div>
       </div>
+      
+      {/* Pagination Controls */}
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-3 bg-gray-50 border-t">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page === 1 || isLoading}
+          >
+            Previous
+          </Button>
+          <div className="text-sm text-gray-600">
+            Page {pagination.page} of {pagination.totalPages}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page >= pagination.totalPages || isLoading}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
