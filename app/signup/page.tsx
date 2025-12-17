@@ -386,7 +386,7 @@ export default function SignUpPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            placeholder="Enter your password (min 6 characters)"
+            placeholder="Enter your password (min 8 characters)"
             className="w-full"
           />
         </div>
