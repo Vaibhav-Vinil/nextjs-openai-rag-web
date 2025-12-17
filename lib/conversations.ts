@@ -46,7 +46,7 @@ export async function saveConversation(
           url: url
         });
         errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
-      } catch (e) {
+      } catch {
         // If JSON parsing fails, get the text response
         const text = await response.text();
         console.error("Error saving conversation (non-JSON response):", {

@@ -4219,7 +4219,7 @@
         "product_name":  "Growatt Single Phase Hybrid SPE 12000 ES",
         "product_img":  "https://admin.pv.market/uploads/modules/products/09-08-25_11-40-39Screenshot_2025-08-09_153730-removebg-preview.jpg",
         "description":  "12 kW Single Phase Hybrid\r\nAC nominal power: 12000W\r\nDimension (W/H/D): 550/465/150m\r\nWeight: 21.5kg",
-        "price":  "703.5",
+        "price":  "2659",
         "base_currency":  "AED",
         "lead_time":  "1 weeks",
         "country":  "United Arab Emirates",
@@ -4657,7 +4657,7 @@
     {
         "id":  661,
         "product_name":  "Chisage Merc-50G1-HE SERIES High-Voltage Hybrid Inverters",
-        "product_img":  "https://admin.pv.market/uploads/modules/products/15-09-25_10-31-47download_(21).jpg",
+        "product_img":  "https://admin.pv.market/uploads/modules/products/17-12-25_08-59-28merc_chisage.jpg",
         "description":  "⦁\tUp to 20 PCS inverters parallel for off-grid operation\r\n⦁\tHigh battery charging/discharging current up to 120A\r\n⦁\tSupport on/off-grid mode switch, EPS output\r\n⦁\tColorful touch LCD, IP65 protection degree\r\n⦁\tSupport battery charging/discharging according to the time setting\r\n⦁\tIndependent AC input port for diesel generator\r\n⦁\tSupport storing energy from diesel generator\r\n⦁\tHigh PV input current up to 18A",
         "price":  "4167",
         "base_currency":  "USD",
@@ -4674,7 +4674,7 @@
     {
         "id":  662,
         "product_name":  "Chisage Merc-60G1-HE SERIES High-Voltage Hybrid Inverters",
-        "product_img":  "https://admin.pv.market/uploads/modules/products/15-09-25_10-33-41download_(21).jpg",
+        "product_img":  "https://admin.pv.market/uploads/modules/products/17-12-25_08-59-53merc_chisage.jpg",
         "description":  "⦁\tUp to 20 PCS inverters parallel for off-grid operation\r\n⦁\tHigh battery charging/discharging current up to 120A\r\n⦁\tSupport on/off-grid mode switch, EPS output\r\n⦁\tColorful touch LCD, IP65 protection degree\r\n⦁\tSupport battery charging/discharging according to the time setting\r\n⦁\tIndependent AC input port for diesel generator\r\n⦁\tSupport storing energy from diesel generator\r\n⦁\tHigh PV input current up to 18A",
         "price":  "4543",
         "base_currency":  "USD",

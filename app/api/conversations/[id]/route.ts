@@ -20,7 +20,7 @@ export async function GET(
     const { id } = await params;
     
     // First check if user is admin
-    const { data: adminData, error: adminError } = await supabase.rpc('is_admin');
+    const { data: adminData } = await supabase.rpc('is_admin');
     const isAdmin = adminData || false;
 
     let data, error;
