@@ -199,12 +199,21 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
 
   const handleLoadConversation = async (id: string) => {
     setConversationLoading(true);
-    const data = await loadConversation(id);
-    if (data) {
-      loadConv(data.conversation_items, data.chat_messages, id);
-      setCurrentConversationId(id);
+    try {
+      // Pass isAdminView=true when in admin view
+      const isAdminView = !!adminViewUserId;
+      const data = await loadConversation(id, isAdminView);
+      if (data) {
+        loadConv(data.conversation_items, data.chat_messages, id);
+        setCurrentConversationId(id);
+      } else {
+        console.error('Failed to load conversation data');
+      }
+    } catch (error) {
+      console.error('Error in handleLoadConversation:', error);
+    } finally {
+      setConversationLoading(false);
     }
-    setConversationLoading(false);
   };
 
   const [sharedConversationId, setSharedConversationId] = useState<string | null>(null);
