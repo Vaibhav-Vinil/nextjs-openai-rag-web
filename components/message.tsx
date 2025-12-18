@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Copy, Check, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Image from 'next/image';
 import { INITIAL_MESSAGE } from "@/config/constants";
 
 // Function to process message content and extract product images
-export const processMessageContent = (content: any[]): { 
+export const processMessageContent = (content: any[], messageIndex: number = 0): { 
   text: string | React.ReactNode[];
   productImage?: { src: string; link: string }; 
   productImages?: Array<{src: string; link: string; position: number}>;
@@ -128,11 +129,16 @@ export const processMessageContent = (content: any[]): {
                     rel="noopener noreferrer"
                     className="inline-block"
                   >
-                    <img 
-                      src={imgData.product_img} 
-                      alt="Product" 
-                      className="max-w-full h-auto max-h-80 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow object-contain"
-                    />
+                    <div className="relative w-full h-80">
+                      <Image
+                        src={imgData.product_img}
+                        alt="Product"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="rounded-lg border border-gray-200 hover:shadow-lg transition-shadow object-contain"
+                        priority={messageIndex < 2} // Only preload first few images
+                      />
+                    </div>
                   </a>
                   <a
                     href={productLink}

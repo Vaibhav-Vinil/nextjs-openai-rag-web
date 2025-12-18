@@ -3,14 +3,50 @@ import React, { useState, useEffect, useCallback } from "react";
 import useToolsStore from "@/stores/useToolsStore";
 import FileUpload from "@/components/file-upload";
 import { Input } from "./ui/input";
-import { CircleX } from "lucide-react";
+import { CircleX, FileText } from "lucide-react";
 import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Tooltip } from "./ui/tooltip";
 import { TooltipProvider } from "./ui/tooltip";
 
+type FileInfo = {
+  id: string;
+  object: string;
+  bytes: number;
+  created_at: number;
+  filename: string;
+  purpose: string;
+  status: string;
+  status_details: string | null;
+};
+
 export default function FileSearchSetup() {
   const { vectorStore, setVectorStore, setFileSearchEnabled } = useToolsStore();
   const [newStoreId, setNewStoreId] = useState<string>("");
+  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchVectorStoreFiles = useCallback(async (storeId: string) => {
+    if (!storeId) {
+      setFiles([]);
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/vector_stores/list_files?vector_store_id=${storeId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFiles(data.data || []);
+      } else {
+        setFiles([]);
+      }
+    } catch (error) {
+      console.error("Error fetching vector store files:", error);
+      setFiles([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const syncSharedStore = useCallback(async () => {
     try {
@@ -26,10 +62,12 @@ export default function FileSearchSetup() {
 
       if (sharedStore && sharedStore.store_id) {
         if (!vectorStore?.id || vectorStore.id !== sharedStore.store_id) {
-          setVectorStore({
+          const store = {
             id: sharedStore.store_id,
             name: sharedStore.store_name || "",
-          });
+          };
+          setVectorStore(store);
+          fetchVectorStoreFiles(store.id);
         }
         setNewStoreId(sharedStore.store_id);
       } else {
@@ -38,59 +76,102 @@ export default function FileSearchSetup() {
             id: "",
             name: "",
           });
-        }
+          }
+        setFiles([]);
+        setFileSearchEnabled(false);
         setNewStoreId("");
       }
     } catch (error) {
       console.error("Error syncing shared vector store:", error);
     }
-  }, [setVectorStore, setFileSearchEnabled, vectorStore?.id]);
+  }, [setVectorStore, setFileSearchEnabled, vectorStore?.id, fetchVectorStoreFiles]);
 
+  // Fetch files whenever the vector store changes
+  useEffect(() => {
+    if (vectorStore?.id) {
+      fetchVectorStoreFiles(vectorStore.id);
+    } else {
+      setFiles([]);
+    }
+  }, [vectorStore?.id, fetchVectorStoreFiles]);
+
+  // Initial sync
   useEffect(() => {
     syncSharedStore();
   }, [syncSharedStore]);
 
   const unlinkStore = async () => {
+    if (!vectorStore?.id) return;
+    
     try {
+      // First, clean up all files and the vector store
+      const cleanupResponse = await fetch(`/api/vector_stores/cleanup?vector_store_id=${vectorStore.id}`, {
+        method: "DELETE",
+      });
+      
+      if (!cleanupResponse.ok) {
+        throw new Error("Failed to clean up vector store");
+      }
+      
+      // Then remove the shared reference
       await fetch("/api/vector_stores/shared", {
         method: "DELETE",
       });
+      
     } catch (error) {
       console.error("Error unlinking shared vector store:", error);
+      alert("Failed to unlink vector store. Please try again.");
+      return;
     } finally {
+      // Update local state
       setVectorStore({
         id: "",
         name: "",
       });
       setFileSearchEnabled(false);
       setNewStoreId("");
+      setFiles([]);
     }
+    
     await syncSharedStore();
   };
 
   const handleAddStore = async (storeId: string) => {
     if (storeId.trim()) {
-      const newStore = await fetch(
-        `/api/vector_stores/retrieve_store?vector_store_id=${storeId}`
-      ).then((res) => res.json());
-      if (newStore.id) {
-        console.log("Retrieved store:", newStore);
-        setVectorStore(newStore);
-        setNewStoreId("");
-        try {
-          await fetch("/api/vector_stores/shared", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              store_id: newStore.id,
-              store_name: newStore.name ?? "",
-            }),
-          });
-        } catch (error) {
-          console.error("Error updating shared vector store:", error);
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/vector_stores/retrieve_store?vector_store_id=${storeId}`
+        );
+        const newStore = await response.json();
+        
+        if (newStore.id) {
+          console.log("Retrieved store:", newStore);
+          setVectorStore(newStore);
+          setNewStoreId("");
+          
+          try {
+            await fetch("/api/vector_stores/shared", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                store_id: newStore.id,
+                store_name: newStore.name ?? "",
+              }),
+            });
+            // Fetch files for the new store
+            await fetchVectorStoreFiles(newStore.id);
+          } catch (error) {
+            console.error("Error updating shared vector store:", error);
+          }
+        } else {
+          alert("Vector store not found");
         }
-      } else {
-        alert("Vector store not found");
+      } catch (error) {
+        console.error("Error fetching vector store:", error);
+        alert("Error fetching vector store. Please check the ID and try again.");
+      } finally {
+        setIsLoading(false);
       }
     }
     await syncSharedStore();
@@ -108,24 +189,44 @@ export default function FileSearchSetup() {
           </div>
           {vectorStore?.id ? (
             <div className="flex items-center justify-between flex-1 min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="text-zinc-400  text-xs font-mono flex-1 text-ellipsis truncate">
-                  {vectorStore.id}
+              <div className="flex flex-col gap-1 w-full">
+                <div className="flex items-center gap-2 w-full">
+                  <div className="text-zinc-400 text-xs font-mono flex-1 text-ellipsis truncate">
+                    {vectorStore.id}
+                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <CircleX
+                          onClick={() => unlinkStore()}
+                          size={16}
+                          className="cursor-pointer text-zinc-400 hover:text-zinc-700 transition-all flex-shrink-0"
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent className="mr-2">
+                        <p>Unlink vector store</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <CircleX
-                        onClick={() => unlinkStore()}
-                        size={16}
-                        className="cursor-pointer text-zinc-400 mb-0.5 shrink-0 mt-0.5 hover:text-zinc-700 transition-all"
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent className="mr-2">
-                      <p>Unlink vector store</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {isLoading ? (
+                  <div className="text-xs text-zinc-400 flex items-center gap-1">
+                    <div className="w-3 h-3 border-2 border-zinc-300 border-t-zinc-500 rounded-full animate-spin"></div>
+                    Loading files...
+                  </div>
+                ) : files.length > 0 ? (
+                  <div className="text-xs text-zinc-500 flex items-center gap-1 flex-wrap">
+                    <FileText size={12} className="flex-shrink-0" />
+                    <span className="truncate max-w-[200px]" title={files[0].id}>
+                      {files[0].id}
+                    </span>
+                    {files.length > 1 && (
+                      <span className="text-zinc-400">+{files.length - 1} more</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-zinc-400">No files in this store</div>
+                )}
               </div>
             </div>
           ) : (
@@ -158,6 +259,7 @@ export default function FileSearchSetup() {
           vectorStoreName={vectorStore?.name ?? ""}
           onAddStore={(id) => handleAddStore(id)}
           onUnlinkStore={() => unlinkStore()}
+          onFileUploaded={() => vectorStore?.id && fetchVectorStoreFiles(vectorStore.id)}
         />
       </div>
     </div>

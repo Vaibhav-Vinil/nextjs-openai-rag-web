@@ -96,7 +96,7 @@ const Chat: React.FC<ChatProps> = ({
         void sendMessage();
       }
     },
-    [sendMessage, isComposing]
+    [sendMessage, isComposing, readOnly]
   );
 
   // Handle scroll events for fade effect

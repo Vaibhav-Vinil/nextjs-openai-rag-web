@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // For each user, get their latest conversation
     const userConversationMap = new Map<string, { conversationId: string; lastChatAt: string }>();
-    conversations?.forEach(conv => {
+    conversations?.forEach((conv: { user_id: string; id: string; updated_at: string }) => {
       const existing = userConversationMap.get(conv.user_id);
       if (!existing || new Date(conv.updated_at) > new Date(existing.lastChatAt)) {
         userConversationMap.set(conv.user_id, {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     });
 
     // First, get the total count of users from the function
-    const { data: allUsers, count: totalCount, error: countError } = await supabase
+    const { data: allUsers, error: countError } = await supabase
       .rpc('get_all_users_with_metadata');
     
     if (countError) {

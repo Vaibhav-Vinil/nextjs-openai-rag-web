@@ -24,6 +24,7 @@ interface FileUploadProps {
   vectorStoreName?: string;
   onAddStore: (id: string) => void;
   onUnlinkStore: () => void;
+  onFileUploaded?: () => void;
 }
 
 export default function FileUpload({
@@ -31,6 +32,7 @@ export default function FileUpload({
   vectorStoreName,
   onAddStore,
   onUnlinkStore,
+  onFileUploaded,
 }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [newStoreName, setNewStoreName] = useState<string>(
@@ -198,6 +200,11 @@ export default function FileUpload({
       }
       const addFileData = await addFileResponse.json();
       console.log("Added file to vector store:", addFileData);
+      
+      // Notify parent component that a file was uploaded
+      if (onFileUploaded) {
+        onFileUploaded();
+      }
       setNewStoreName(finalVectorStoreName);
       setFile(null);
       setDialogOpen(false);
