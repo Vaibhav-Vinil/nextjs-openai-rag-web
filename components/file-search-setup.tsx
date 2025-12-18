@@ -103,37 +103,55 @@ export default function FileSearchSetup() {
   const unlinkStore = async () => {
     if (!vectorStore?.id) return;
     
+    // Update UI immediately for better UX
+    setFileSearchEnabled(false);
+    setNewStoreId("");
+    setFiles([]);
+    
     try {
       // First, clean up all files and the vector store
       const cleanupResponse = await fetch(`/api/vector_stores/cleanup?vector_store_id=${vectorStore.id}`, {
         method: "DELETE",
       });
       
+      const result = await cleanupResponse.json();
+      
       if (!cleanupResponse.ok) {
-        throw new Error("Failed to clean up vector store");
+        // If we get a 404, it means the store was already deleted, which is fine
+        if (cleanupResponse.status === 404) {
+          console.log('Vector store was already deleted, cleaning up local references');
+        } else {
+          throw new Error(result.error || "Failed to clean up vector store");
+        }
       }
       
       // Then remove the shared reference
-      await fetch("/api/vector_stores/shared", {
-        method: "DELETE",
-      });
+      try {
+        await fetch("/api/vector_stores/shared", {
+          method: "DELETE",
+        });
+      } catch (error) {
+        console.warn("Error removing shared reference (non-critical):", error);
+        // Continue even if this fails
+      }
       
     } catch (error) {
-      console.error("Error unlinking shared vector store:", error);
-      alert("Failed to unlink vector store. Please try again.");
-      return;
+      console.error("Error during vector store cleanup:", error);
+      // Even if there was an error, we'll still update the UI to reflect the unlinked state
     } finally {
-      // Update local state
+      // Always update local state to reflect unlinked state
       setVectorStore({
         id: "",
         name: "",
       });
-      setFileSearchEnabled(false);
-      setNewStoreId("");
-      setFiles([]);
+      
+      // Sync with the server to ensure consistency
+      try {
+        await syncSharedStore();
+      } catch (syncError) {
+        console.error("Error syncing shared store state:", syncError);
+      }
     }
-    
-    await syncSharedStore();
   };
 
   const handleAddStore = async (storeId: string) => {
