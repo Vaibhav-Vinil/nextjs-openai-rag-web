@@ -37,7 +37,8 @@ export async function POST() {
       console.log('Reading catalog file from:', catalogPath);
       
       const fileBuffer = await readFile(catalogPath);
-      const fileContent = fileBuffer.toString('utf8').replace(/^\uFEFF/, '');
+      // Remove BOM if present and convert to string
+      fileBuffer.toString('utf8').replace(/^\uFEFF/, '');
       
       // Step 3: Upload the file using the existing endpoint
       console.log('Uploading catalog file...');
@@ -65,7 +66,7 @@ export async function POST() {
       console.log('Getting or creating vector store...');
       const storeName = 'Product Catalog';
       
-      // Check if we already have a vector store
+      // Check if we already have a vector store in our config
       const { data: existingStore } = await supabase
         .from('vector_store_config')
         .select('*')
@@ -73,8 +74,21 @@ export async function POST() {
         .single();
       
       let vectorStoreId = existingStore?.store_id;
+      let needToCreateStore = !vectorStoreId;
       
-      if (!vectorStoreId) {
+      // If we have a store ID, verify it still exists
+      if (vectorStoreId) {
+        try {
+          await openai.vectorStores.retrieve(vectorStoreId);
+          console.log('Using existing vector store:', vectorStoreId);
+        } catch {
+          console.log('Vector store not found, will create a new one');
+          needToCreateStore = true;
+          vectorStoreId = undefined;
+        }
+      }
+      
+      if (needToCreateStore) {
         // Create a new vector store if one doesn't exist
         const createResponse = await fetch(`${baseUrl}/api/vector_stores/create_store`, {
           method: 'POST',
@@ -94,8 +108,38 @@ export async function POST() {
         console.log('Using existing vector store:', vectorStoreId);
       }
       
-      // Step 5: Add the file to the vector store
-      console.log('Adding file to vector store...');
+      // Step 5: Get current files in the vector store and unlink them
+      console.log('Getting current files in vector store...');
+      const listFilesResponse = await fetch(`${baseUrl}/api/vector_stores/list_files?vector_store_id=${vectorStoreId}`);
+      
+      if (listFilesResponse.ok) {
+        const filesData = await listFilesResponse.json();
+        const currentFiles = filesData.data || [];
+        
+        // Unlink and delete all existing files
+        console.log(`Found ${currentFiles.length} existing files, cleaning up...`);
+        for (const file of currentFiles) {
+          try {
+            // First unlink from vector store
+            await openai.vectorStores.files.del(
+              vectorStoreId,
+              file.id
+            );
+            console.log(`Unlinked file from vector store: ${file.id}`);
+            
+            // Then delete the file from OpenAI storage
+            await openai.files.del(file.id);
+            console.log(`Deleted file from OpenAI storage: ${file.id}`);
+            
+          } catch (error) {
+            console.error(`Error cleaning up file ${file.id}:`, error);
+            // Continue with other files even if one fails
+          }
+        }
+      }
+
+      // Step 6: Add the new file to the vector store
+      console.log('Adding new file to vector store...');
       const addFileResponse = await fetch(`${baseUrl}/api/vector_stores/add_file`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,18 +154,78 @@ export async function POST() {
         throw new Error(`Failed to add file to vector store: ${error.message || 'Unknown error'}`);
       }
       
-      // Step 6: Update the vector store config in our database
+      // Update the shared store configuration to ensure UI consistency
+      await supabase
+        .from('vector_store_config')
+        .upsert(
+          {
+            key: 'shared',
+            store_id: vectorStoreId,
+            store_name: storeName,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'key' }
+        );
+      
+      // Step 7: Update the assistant to use the vector store
+      console.log('Updating assistant with new vector store...');
+      const { data: assistantData } = await supabase
+        .from('vector_store_config')
+        .select('assistant_id')
+        .eq('key', 'catalog')
+        .single();
+        
+      if (assistantData?.assistant_id) {
+        try {
+          await openai.beta.assistants.update(assistantData.assistant_id, {
+            tool_resources: {
+              file_search: {
+                vector_store_ids: [vectorStoreId]
+              }
+            }
+          });
+          console.log('Assistant updated with new vector store');
+        } catch (error) {
+          console.error('Error updating assistant:', error);
+          // Continue even if assistant update fails
+        }
+      }
+      
+      // Step 6: Update the shared vector store configuration directly using service role
+      // This bypasses RLS policies for admin operations
+      const { error: sharedStoreError } = await supabase
+        .from('vector_store_config')
+        .upsert(
+          {
+            key: 'shared',
+            store_id: vectorStoreId,
+            store_name: storeName,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'key' }
+        );
+
+      if (sharedStoreError) {
+        console.error('Failed to update shared vector store:', sharedStoreError);
+        // Continue even if this fails as the main operation was successful
+      }
+
+      // Also update the catalog-specific config using the authenticated client
       const { error: updateError } = await supabase
         .from('vector_store_config')
-        .upsert({
-          key: 'catalog',
-          store_id: vectorStoreId,
-          store_name: storeName,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'key' });
+        .upsert(
+          {
+            key: 'catalog',
+            store_id: vectorStoreId,
+            store_name: storeName,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'key' }
+        );
       
       if (updateError) {
-        throw new Error(`Failed to update vector store config: ${updateError.message}`);
+        console.error('Failed to update vector store config:', updateError);
+        // Continue even if this fails as the main operation was successful
       }
       
       console.log('Catalog update completed successfully');

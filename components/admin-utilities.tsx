@@ -130,7 +130,7 @@ export default function AdminUtilities() {
             )}
           </Button>
           <p className="text-sm text-muted-foreground">
-            Fetch the latest product data and update the vector store. This may take a few minutes.
+            This will delete all conversations and start fresh. This action cannot be undone.&apos;
           </p>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function AdminUtilities() {
             )}
           </Button>
           <p className="text-sm text-muted-foreground">
-            Reset the query limits for all users. Use this if you've updated the rate limiting configuration.
+            Reset the query limits for all users. Use this if you&apos;ve updated the rate limiting configuration.
           </p>
         </div>
       </div>

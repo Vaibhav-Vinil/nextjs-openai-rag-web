@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare, LogOut, X, Check, Search, Trash2, Share2 } from "lucide-react";
 import Image from "next/image";
@@ -25,7 +25,7 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
   const [searchQuery, setSearchQuery] = useState("");
   const { currentConversationId, resetConversation, loadConversation: loadConv, setCurrentConversationId, setConversationLoading } = useConversationStore();
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     setLoading(true);
     let convs: Conversation[] = [];
 
@@ -38,7 +38,7 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
 
     setConversations(convs);
     setLoading(false);
-  };
+  }, [adminViewUserId]);
 
   const router = useRouter();
 
@@ -51,7 +51,7 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
     }
 
     fetchConversations();
-  }, [publicView, userEmail, adminViewUserId]);
+  }, [publicView, userEmail, fetchConversations]);
 
   // Search state with caching
   const [searchResults, setSearchResults] = useState<Conversation[]>([]);
