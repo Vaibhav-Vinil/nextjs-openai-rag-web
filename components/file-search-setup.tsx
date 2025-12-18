@@ -76,7 +76,7 @@ export default function FileSearchSetup() {
             id: "",
             name: "",
           });
-        }
+          }
         setFiles([]);
         setFileSearchEnabled(false);
         setNewStoreId("");
