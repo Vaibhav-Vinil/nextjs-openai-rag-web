@@ -16,9 +16,48 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "pvAI - Powered by pvmarket",
-  description: "Starter app for the OpenAI Responses API",
+  description: "Advanced AI assistant for pv.market - Get instant answers and insights about solar energy and photovoltaics.",
+  keywords: ["solar energy", "photovoltaics", "AI assistant", "pv market", "solar power", "renewable energy"],
+  authors: [{ name: "pv.market" }],
+  metadataBase: new URL('https://pv-ai.pv.market'),
+  openGraph: {
+    title: "pvAI - Powered by pv.market",
+    description: "Advanced AI assistant for pv.market - Get instant answers and insights about solar energy and photovoltaics.",
+    url: 'https://pv-ai.pv.market',
+    siteName: 'pvAI - pv.market',
+    images: [
+      {
+        url: '/PvChatbot-logo.png',
+        width: 512,
+        height: 512,
+        alt: 'pv.market Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "pvAI - Powered by pv.market",
+    description: "Advanced AI assistant for pv.market - Get instant answers and insights about solar energy and photovoltaics.",
+    images: ['/PvChatbot-logo.png'],
+  },
   icons: {
-    icon: "/PvChatbot-logo.ico",
+    icon: [
+      { url: '/PvChatbot-logo.ico' },
+      { url: '/PvChatbot-logo.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png' },
+    ],
+    other: [
+      {
+        rel: 'icon',
+        type: 'image/png',
+        url: '/PvChatbot-logo.png',
+        sizes: '512x512',
+      },
+    ],
   },
 };
 
