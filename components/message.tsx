@@ -129,15 +129,39 @@ export const processMessageContent = (content: any[], messageIndex: number = 0):
                     rel="noopener noreferrer"
                     className="inline-block"
                   >
-                    <div className="relative w-full h-80">
-                      <Image
-                        src={imgData.product_img}
-                        alt="Product"
-                        fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        className="rounded-lg border border-gray-200 hover:shadow-lg transition-shadow object-contain"
-                        priority={messageIndex < 2} // Only preload first few images
-                      />
+                    <div className="relative w-full" style={{ minHeight: '320px', maxHeight: '500px' }}>
+                      <div className="relative w-full h-full flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+                        {imgData.product_img ? (
+                          <>
+                            <Image
+                              src={imgData.product_img}
+                              alt="Product"
+                              width={400}
+                              height={300}
+                              className="max-w-full max-h-full object-contain p-4"
+                              priority={messageIndex < 2}
+                              onError={(e) => {
+                                console.error('Image failed to load:', imgData.product_img);
+                                const target = e.target as HTMLImageElement;
+                                const img = document.createElement('img');
+                                img.src = target.src;
+                                img.alt = target.alt;
+                                img.className = 'max-w-full max-h-full object-contain p-4';
+                                img.onerror = () => {
+                                  console.error('Fallback image also failed to load');
+                                  const errorDiv = document.createElement('div');
+                                  errorDiv.className = 'text-center p-4 text-gray-500';
+                                  errorDiv.textContent = 'Image not available';
+                                  target.parentNode?.replaceChild(errorDiv, target);
+                                };
+                                target.parentNode?.replaceChild(img, target);
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <div className="text-gray-400">No image available</div>
+                        )}
+                      </div>
                     </div>
                   </a>
                   <a
