@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 type PhoneValidationResult = {
   phone_number: string;
@@ -130,57 +132,26 @@ export default function SignUpPage() {
     };
   }, [success, supabase.auth]);
 
-  const validatePhoneNumber = (phoneNumber: string): { isValid: boolean; error?: string } => {
-    // Remove all non-digit characters
-    const digitsOnly = phoneNumber.replace(/\D/g, '');
-    
-    // Check if the field is empty
-    if (!digitsOnly) {
+  const validatePhoneNumber = (phoneNumber: string | undefined): { isValid: boolean; error?: string } => {
+    if (!phoneNumber) {
       return { 
         isValid: false, 
         error: 'Phone number is required' 
       };
     }
     
-    // Check minimum length
-    if (digitsOnly.length < 5) {
-      return { 
-        isValid: false, 
-        error: 'Invalid phone number'
-      };
-    }
-    
-    if (digitsOnly.length > 15) {
-      return { 
-        isValid: false, 
-        error: 'Invalid phone number'
-      };
-    }
-    
-    // Basic international phone number validation
-    const phoneRegex = /^[+\s\d\-()]{8,20}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      return { 
-        isValid: false, 
-        error: 'Invalid phone number'
-      };
-    }
-    
+    // The library handles the validation for us
     return { isValid: true };
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const formatPhoneNumber = (phone: string): string => {
-    // Remove all non-digit characters except leading +
-    const digits = phone.replace(/[^0-9+]/g, '');
-    // Ensure there's a leading + for international numbers
-    return digits.startsWith('+') ? digits : `+${digits}`;
+  const formatPhoneNumber = (phone: string | undefined): string => {
+    // The library provides the formatted number with country code
+    return phone || '';
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow numbers, +, -, (, ) and spaces
-    const value = e.target.value.replace(/[^0-9+\-()\s]/g, '');
-    setPhone(value);
+  const handlePhoneChange = (value: string | undefined) => {
+    setPhone(value || '');
     // Clear any previous error when user types
     if (error) setError('');
   };
@@ -211,8 +182,8 @@ export default function SignUpPage() {
 
     setLoading(true);
     
-    // Format phone number with proper international format
-    const formattedPhone = phone.replace(/\D/g, '').replace(/^\+?/, '+');
+    // The library provides the formatted number with country code
+    const formattedPhone = phone || '';
     
     try {
       // Validate phone number with Abstract API
@@ -435,18 +406,73 @@ export default function SignUpPage() {
           <label htmlFor="phone" className="block text-sm font-medium mb-2">
             Phone Number <span className="text-red-500">*</span>
           </label>
-          <Input
-            id="phone"
-            type="tel"
-            value={phone}
-            onChange={handlePhoneChange}
-            placeholder="e.g., +1 (123) 456-7890"
-            className="w-full"
-            required
-          />
+          <div className="relative">
+            <PhoneInput
+              international
+              defaultCountry="US"
+              value={phone || undefined}
+              onChange={handlePhoneChange}
+              placeholder="Enter phone number"
+              className="phone-input"
+              limitMaxLength
+              initialValueFormat="national"
+              withCountryCallingCode
+            />
+          </div>
           <p className="mt-1 text-xs text-gray-500">
-            Include country code (e.g., +1, +44, +971)
+            We'll send you a verification code
           </p>
+          <style jsx global>{`
+            .phone-input {
+              --PhoneInputCountryFlag-height: 1.5em;
+              --PhoneInputCountryFlag-borderColor: #e5e7eb;
+              --PhoneInputCountrySelectArrow-color: #6b7280;
+              --PhoneInputCountrySelectArrow-opacity: 0.8;
+              --PhoneInput-color--focus: #3b82f6;
+              --PhoneInputCountrySelect-marginRight: 0.5em;
+              --PhoneInputCountrySelectArrow-marginLeft: 0.25em;
+              --PhoneInputCountrySelectArrow-marginRight: 0;
+              --PhoneInputCountrySelectArrow-borderWidth: 2px;
+              --PhoneInputCountrySelectArrow-width: 0.5em;
+              --PhoneInputCountrySelectArrow-height: 0.25em;
+            }
+            
+            .phone-input input {
+              height: 2.5rem;
+              width: 100%;
+              border-radius: 0.375rem;
+              border: 1px solid #e5e7eb;
+              padding: 0 0.75rem;
+              font-size: 0.875rem;
+              line-height: 1.25rem;
+              transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            }
+            
+            .phone-input input:focus {
+              outline: none;
+              border-color: #3b82f6;
+              box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            }
+            
+            .phone-input .PhoneInputCountry {
+              position: absolute;
+              top: 0;
+              bottom: 0;
+              left: 0.75rem;
+              display: flex;
+              align-items: center;
+              z-index: 10;
+            }
+            
+            .phone-input .PhoneInputCountrySelect {
+              margin-right: 0.5em;
+              margin-left: 0.5em;
+            }
+            
+            .phone-input .PhoneInputInput {
+              padding-left: 4.5rem !important;
+            }
+          `}</style>
         </div>
         
         <div>
