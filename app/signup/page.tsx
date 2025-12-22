@@ -419,9 +419,6 @@ export default function SignUpPage() {
               withCountryCallingCode
             />
           </div>
-          <p className="mt-1 text-xs text-gray-500">
-            We'll send you a verification code
-          </p>
           <style jsx global>{`
             .phone-input {
               --PhoneInputCountryFlag-height: 1.5em;
