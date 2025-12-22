@@ -6,6 +6,23 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 
+type PhoneValidationResult = {
+  phone_number: string;
+  phone_validation: {
+    is_valid: boolean;
+    line_status: string;
+    is_voip: boolean;
+  };
+  phone_carrier?: {
+    name: string;
+    line_type: string;
+  };
+  phone_risk?: {
+    risk_level: string;
+    is_disposable: boolean;
+  };
+};
+
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -15,7 +32,49 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isValidatingPhone, setIsValidatingPhone] = useState(false);
   const supabase = createClient();
+
+  const validatePhoneWithAbstractAPI = async (phoneNumber: string): Promise<{valid: boolean; error?: string}> => {
+    try {
+      const response = await fetch(
+        `https://phoneintelligence.abstractapi.com/v1/?api_key=${process.env.NEXT_PUBLIC_ABSTRACT_API_KEY}&phone=${encodeURIComponent(phoneNumber)}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to validate phone number');
+      }
+
+      const data: PhoneValidationResult = await response.json();
+
+      // Check if phone is valid and active
+      if (!data.phone_validation?.is_valid || data.phone_validation.line_status !== 'active') {
+        return { valid: false, error: 'Please enter a valid and active phone number' };
+      }
+
+      // Check if it's a VOIP number
+      if (data.phone_validation.is_voip) {
+        return { valid: false, error: 'VOIP numbers are not allowed. Please use a mobile or landline number.' };
+      }
+
+      // Check if the number is disposable or high risk
+      if (data.phone_risk?.is_disposable || data.phone_risk?.risk_level === 'high') {
+        return { valid: false, error: 'This phone number cannot be used for registration' };
+      }
+
+      // Check if it's a mobile or landline
+      const allowedTypes = ['mobile', 'landline', 'wireless'];
+      if (data.phone_carrier && !allowedTypes.includes(data.phone_carrier.line_type.toLowerCase())) {
+        return { valid: false, error: 'Please use a mobile or landline number' };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      console.error('Phone validation error:', error);
+      // In case of API failure, we'll still allow signup but log the error
+      return { valid: true };
+    }
+  };
 
   // Check authentication and verification status
   useEffect(() => {
@@ -143,7 +202,7 @@ export default function SignUpPage() {
       return;
     }
 
-    // Validate phone number
+    // Basic phone number format validation
     const phoneValidation = validatePhoneNumber(phone);
     if (!phoneValidation.isValid && phoneValidation.error) {
       setError(phoneValidation.error);
@@ -151,13 +210,21 @@ export default function SignUpPage() {
     }
 
     setLoading(true);
-
+    
+    // Format phone number with proper international format
+    const formattedPhone = phone.replace(/\D/g, '').replace(/^\+?/, '+');
+    
     try {
-      // Format phone number with proper international format
-      // Remove all non-digit characters first and ensure proper international format with single +
-      const formattedPhone = phone.replace(/\D/g, '').replace(/^\+?/, '+');
+      // Validate phone number with Abstract API
+      setIsValidatingPhone(true);
+      const phoneValidation = await validatePhoneWithAbstractAPI(formattedPhone);
       
-      // First sign up the user
+      if (!phoneValidation.valid) {
+        setError(phoneValidation.error || 'Invalid phone number');
+        return;
+      }
+
+      // Proceed with user signup after successful phone validation
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -230,6 +297,11 @@ export default function SignUpPage() {
           setError('This email is already registered. Please use a different email or try logging in.');
         } else if (errorMessage.includes('invalid email')) {
           setError('Please enter a valid email address');
+        } else if (errorMessage.includes('phone') || errorMessage.includes('number')) {
+          // Don't override phone validation errors
+          if (!errorMessage.includes('invalid phone number')) {
+            setError('There was an issue with your phone number. Please try again.');
+          }
         } else if (errorMessage.includes('password')) {
           setError('There was an issue with your password. Please try again.');
         } else {
@@ -242,6 +314,7 @@ export default function SignUpPage() {
       }
     } finally {
       setLoading(false);
+      setIsValidatingPhone(false);
     }
   };
 
@@ -415,9 +488,17 @@ export default function SignUpPage() {
         <Button
           type="submit"
           className="w-full mt-4 flex items-center justify-center gap-2"
-          disabled={loading}
+          disabled={loading || isValidatingPhone}
         >
-          {loading ? (
+          {isValidatingPhone ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Verifying phone number...
+            </>
+          ) : loading ? (
             <>
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
