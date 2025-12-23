@@ -5,6 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+
+type PhoneValidationResult = {
+  phone_number: string;
+  phone_validation: {
+    is_valid: boolean;
+    line_status: string;
+    is_voip: boolean;
+  };
+  phone_carrier?: {
+    name: string;
+    line_type: string;
+  };
+  phone_risk?: {
+    risk_level: string;
+    is_disposable: boolean;
+  };
+};
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -15,7 +34,49 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isValidatingPhone, setIsValidatingPhone] = useState(false);
   const supabase = createClient();
+
+  const validatePhoneWithAbstractAPI = async (phoneNumber: string): Promise<{valid: boolean; error?: string}> => {
+    try {
+      const response = await fetch(
+        `https://phoneintelligence.abstractapi.com/v1/?api_key=${process.env.NEXT_PUBLIC_ABSTRACT_API_KEY}&phone=${encodeURIComponent(phoneNumber)}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to validate phone number');
+      }
+
+      const data: PhoneValidationResult = await response.json();
+
+      // Check if phone is valid and active
+      if (!data.phone_validation?.is_valid || data.phone_validation.line_status !== 'active') {
+        return { valid: false, error: 'Please enter a valid and active phone number' };
+      }
+
+      // Check if it's a VOIP number
+      if (data.phone_validation.is_voip) {
+        return { valid: false, error: 'VOIP numbers are not allowed. Please use a mobile or landline number.' };
+      }
+
+      // Check if the number is disposable or high risk
+      if (data.phone_risk?.is_disposable || data.phone_risk?.risk_level === 'high') {
+        return { valid: false, error: 'This phone number cannot be used for registration' };
+      }
+
+      // Check if it's a mobile or landline
+      const allowedTypes = ['mobile', 'landline', 'wireless'];
+      if (data.phone_carrier && !allowedTypes.includes(data.phone_carrier.line_type.toLowerCase())) {
+        return { valid: false, error: 'Please use a mobile or landline number' };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      console.error('Phone validation error:', error);
+      // In case of API failure, we'll still allow signup but log the error
+      return { valid: true };
+    }
+  };
 
   // Check authentication and verification status
   useEffect(() => {
@@ -71,57 +132,26 @@ export default function SignUpPage() {
     };
   }, [success, supabase.auth]);
 
-  const validatePhoneNumber = (phoneNumber: string): { isValid: boolean; error?: string } => {
-    // Remove all non-digit characters
-    const digitsOnly = phoneNumber.replace(/\D/g, '');
-    
-    // Check if the field is empty
-    if (!digitsOnly) {
+  const validatePhoneNumber = (phoneNumber: string | undefined): { isValid: boolean; error?: string } => {
+    if (!phoneNumber) {
       return { 
         isValid: false, 
         error: 'Phone number is required' 
       };
     }
     
-    // Check minimum length
-    if (digitsOnly.length < 5) {
-      return { 
-        isValid: false, 
-        error: 'Invalid phone number'
-      };
-    }
-    
-    if (digitsOnly.length > 15) {
-      return { 
-        isValid: false, 
-        error: 'Invalid phone number'
-      };
-    }
-    
-    // Basic international phone number validation
-    const phoneRegex = /^[+\s\d\-()]{8,20}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      return { 
-        isValid: false, 
-        error: 'Invalid phone number'
-      };
-    }
-    
+    // The library handles the validation for us
     return { isValid: true };
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const formatPhoneNumber = (phone: string): string => {
-    // Remove all non-digit characters except leading +
-    const digits = phone.replace(/[^0-9+]/g, '');
-    // Ensure there's a leading + for international numbers
-    return digits.startsWith('+') ? digits : `+${digits}`;
+  const formatPhoneNumber = (phone: string | undefined): string => {
+    // The library provides the formatted number with country code
+    return phone || '';
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow numbers, +, -, (, ) and spaces
-    const value = e.target.value.replace(/[^0-9+\-()\s]/g, '');
-    setPhone(value);
+  const handlePhoneChange = (value: string | undefined) => {
+    setPhone(value || '');
     // Clear any previous error when user types
     if (error) setError('');
   };
@@ -143,7 +173,7 @@ export default function SignUpPage() {
       return;
     }
 
-    // Validate phone number
+    // Basic phone number format validation
     const phoneValidation = validatePhoneNumber(phone);
     if (!phoneValidation.isValid && phoneValidation.error) {
       setError(phoneValidation.error);
@@ -151,13 +181,21 @@ export default function SignUpPage() {
     }
 
     setLoading(true);
-
+    
+    // The library provides the formatted number with country code
+    const formattedPhone = phone || '';
+    
     try {
-      // Format phone number with proper international format
-      // Remove all non-digit characters first and ensure proper international format with single +
-      const formattedPhone = phone.replace(/\D/g, '').replace(/^\+?/, '+');
+      // Validate phone number with Abstract API
+      setIsValidatingPhone(true);
+      const phoneValidation = await validatePhoneWithAbstractAPI(formattedPhone);
       
-      // First sign up the user
+      if (!phoneValidation.valid) {
+        setError(phoneValidation.error || 'Invalid phone number');
+        return;
+      }
+
+      // Proceed with user signup after successful phone validation
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -230,6 +268,11 @@ export default function SignUpPage() {
           setError('This email is already registered. Please use a different email or try logging in.');
         } else if (errorMessage.includes('invalid email')) {
           setError('Please enter a valid email address');
+        } else if (errorMessage.includes('phone') || errorMessage.includes('number')) {
+          // Don't override phone validation errors
+          if (!errorMessage.includes('invalid phone number')) {
+            setError('There was an issue with your phone number. Please try again.');
+          }
         } else if (errorMessage.includes('password')) {
           setError('There was an issue with your password. Please try again.');
         } else {
@@ -242,6 +285,7 @@ export default function SignUpPage() {
       }
     } finally {
       setLoading(false);
+      setIsValidatingPhone(false);
     }
   };
 
@@ -362,18 +406,70 @@ export default function SignUpPage() {
           <label htmlFor="phone" className="block text-sm font-medium mb-2">
             Phone Number <span className="text-red-500">*</span>
           </label>
-          <Input
-            id="phone"
-            type="tel"
-            value={phone}
-            onChange={handlePhoneChange}
-            placeholder="e.g., +1 (123) 456-7890"
-            className="w-full"
-            required
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Include country code (e.g., +1, +44, +971)
-          </p>
+          <div className="relative">
+            <PhoneInput
+              international
+              defaultCountry="US"
+              value={phone || undefined}
+              onChange={handlePhoneChange}
+              placeholder="Enter phone number"
+              className="phone-input"
+              limitMaxLength
+              initialValueFormat="national"
+              withCountryCallingCode
+            />
+          </div>
+          <style jsx global>{`
+            .phone-input {
+              --PhoneInputCountryFlag-height: 1.5em;
+              --PhoneInputCountryFlag-borderColor: #e5e7eb;
+              --PhoneInputCountrySelectArrow-color: #6b7280;
+              --PhoneInputCountrySelectArrow-opacity: 0.8;
+              --PhoneInput-color--focus: #3b82f6;
+              --PhoneInputCountrySelect-marginRight: 0.5em;
+              --PhoneInputCountrySelectArrow-marginLeft: 0.25em;
+              --PhoneInputCountrySelectArrow-marginRight: 0;
+              --PhoneInputCountrySelectArrow-borderWidth: 2px;
+              --PhoneInputCountrySelectArrow-width: 0.5em;
+              --PhoneInputCountrySelectArrow-height: 0.25em;
+            }
+            
+            .phone-input input {
+              height: 2.5rem;
+              width: 100%;
+              border-radius: 0.375rem;
+              border: 1px solid #e5e7eb;
+              padding: 0 0.75rem;
+              font-size: 0.875rem;
+              line-height: 1.25rem;
+              transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            }
+            
+            .phone-input input:focus {
+              outline: none;
+              border-color: #3b82f6;
+              box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            }
+            
+            .phone-input .PhoneInputCountry {
+              position: absolute;
+              top: 0;
+              bottom: 0;
+              left: 0.75rem;
+              display: flex;
+              align-items: center;
+              z-index: 10;
+            }
+            
+            .phone-input .PhoneInputCountrySelect {
+              margin-right: 0.5em;
+              margin-left: 0.5em;
+            }
+            
+            .phone-input .PhoneInputInput {
+              padding-left: 4.5rem !important;
+            }
+          `}</style>
         </div>
         
         <div>
@@ -415,9 +511,17 @@ export default function SignUpPage() {
         <Button
           type="submit"
           className="w-full mt-4 flex items-center justify-center gap-2"
-          disabled={loading}
+          disabled={loading || isValidatingPhone}
         >
-          {loading ? (
+          {isValidatingPhone ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Verifying phone number...
+            </>
+          ) : loading ? (
             <>
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -38,6 +38,7 @@
     "react-dom": "^18",
     "react-dropzone": "^14.3.8",
     "react-markdown": "^9.0.1",
+    "react-phone-number-input": "^3.4.14",
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.12.7",
     "remark-gfm": "^4.0.1",
