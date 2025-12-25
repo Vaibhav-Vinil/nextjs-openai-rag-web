@@ -180,18 +180,27 @@ export const processMessages = async () => {
     async ({ event, data }) => {
       switch (event) {
         case "error": {
+          // Handle different types of errors
+          let errorMessage = "An unexpected error occurred. Please try again later.";
+          
           if (data.type === "query_limit_exceeded") {
-            // Add error message to chat
-            chatMessages.push({
-              type: "message",
-              role: "assistant",
-              content: [{
-                type: "output_text",
-                text: data.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at <a href='mailto:info@pv.market' class='text-blue-600 hover:underline'>info@pv.market</a> or <a href='tel:+971523825549' class='text-blue-600 hover:underline'>+971 523825549</a> for further support."
-              }]
-            });
-            setChatMessages([...chatMessages]);
+            errorMessage = data.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at [info@pv.market](mailto:info@pv.market) or [+971 523825549](tel:+971523825549) for further support.";
+          } else if (data.code === "insufficient_quota" || data.type === "quota_exceeded") {
+            errorMessage = "Our AI service is currently experiencing high demand. Please try again later or contact us at [info@pv.market](mailto:info@pv.market) or [+971 523825549](tel:+971523825549) for further support.";
+          } else if (data.message) {
+            errorMessage = data.message;
           }
+          
+          // Add error message to chat
+          chatMessages.push({
+            type: "message",
+            role: "assistant",
+            content: [{
+              type: "output_text",
+              text: errorMessage
+            }]
+          });
+          setChatMessages([...chatMessages]);
           setAssistantLoading(false);
           const { webSearchIndicatorId } = useConversationStore.getState();
           if (webSearchIndicatorId) {

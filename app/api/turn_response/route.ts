@@ -161,14 +161,35 @@ export async function POST(request: Request) {
     const cleanedMessages = cleanMessages(messages);
     console.log('Cleaned messages for API:', JSON.stringify(cleanedMessages, null, 2));
 
-    const events = await openai.responses.create({
-      model: MODEL,
-      input: cleanedMessages,
-      instructions: getDeveloperPrompt(),
-      tools,
-      stream: true,
-      parallel_tool_calls: false,
-    });
+    let events;
+    try {
+      events = await openai.responses.create({
+        model: MODEL,
+        input: cleanedMessages,
+        instructions: getDeveloperPrompt(),
+        tools,
+        stream: true,
+        parallel_tool_calls: false,
+      });
+    } catch (error: any) {
+      console.error('OpenAI API Error:', error);
+      if (error.code === 'insufficient_quota' || error.status === 429) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              message: "Our AI service is currently experiencing high demand. Please try again later or contact support if the issue persists.",
+              type: "quota_exceeded",
+              code: "insufficient_quota"
+            }
+          }),
+          {
+            status: 429,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      throw error; // Re-throw other errors
+    }
 
     // Create a ReadableStream that emits SSE data
     const stream = new ReadableStream({
@@ -184,9 +205,32 @@ export async function POST(request: Request) {
           }
           // End of stream
           controller.close();
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error in streaming loop:", error);
-          controller.error(error);
+          
+          // Handle quota exceeded error during streaming
+          if (error.code === 'insufficient_quota' || error.status === 429) {
+            const errorData = JSON.stringify({
+              event: 'error',
+              data: {
+                message: "Our AI service is currently experiencing high demand. Please try again later or contact support if the issue persists.",
+                type: "quota_exceeded",
+                code: "insufficient_quota"
+              }
+            });
+            controller.enqueue(`data: ${errorData}\n\n`);
+          } else {
+            // For other errors, send a generic error message
+            const errorData = JSON.stringify({
+              event: 'error',
+              data: {
+                message: "An unexpected error occurred. Please try again later.",
+                type: "server_error"
+              }
+            });
+            controller.enqueue(`data: ${errorData}\n\n`);
+          }
+          controller.close();
         }
       },
     });
