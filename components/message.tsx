@@ -312,7 +312,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
                                     <table className="min-w-full border border-gray-200" {...props} />
                                   </div>
                                 ),
-                                a: ({node, ...props}) => <a {...props} className="text-blue-600 hover:underline" />,
+                                a: (props) => <a {...props} className="text-blue-600 hover:underline" />,
                               }}
                               skipHtml={false}
                               disallowedElements={[]}
@@ -335,7 +335,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
                             <table className="min-w-full border border-gray-200" {...props} />
                           </div>
                         ),
-                        a: ({node, ...props}) => <a {...props} className="text-blue-600 hover:underline" />,
+                        a: (props) => <a {...props} className="text-blue-600 hover:underline" />,
                       }}
                       skipHtml={false}
                       disallowedElements={[]}
