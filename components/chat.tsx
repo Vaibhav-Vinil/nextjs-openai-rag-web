@@ -156,9 +156,10 @@ const Chat: React.FC<ChatProps> = ({
                   <Image 
                     src="/PvChatbot-logo.png" 
                     alt="PV Chatbot Logo" 
-                    width={250}
-                    height={200}
-                    className="opacity-62 object-contain"
+                    width={512}
+                    height={512}
+                    priority
+                    className="opacity-62 object-contain w-[250px] h-auto"
                   />
                 </div>
               )}

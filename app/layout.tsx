@@ -14,6 +14,14 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+// Logo configuration
+const logoConfig = {
+  url: '/PvChatbot-logo.png',
+  width: 512,
+  height: 512,
+  alt: 'pv.market Logo',
+};
+
 export const metadata: Metadata = {
   title: "pvAI - Powered by pvmarket",
   description: "Advanced AI assistant for pv.market - Get instant answers and insights about solar energy and photovoltaics.",
@@ -25,14 +33,12 @@ export const metadata: Metadata = {
     description: "Advanced AI assistant for pv.market - Get instant answers and insights about solar energy and photovoltaics.",
     url: 'https://pv-ai.pv.market',
     siteName: 'pvAI - pv.market',
-    images: [
-      {
-        url: '/PvChatbot-logo.png',
-        width: 512,
-        height: 512,
-        alt: 'pv.market Logo',
-      },
-    ],
+    images: [{
+      url: logoConfig.url,
+      width: logoConfig.width,
+      height: logoConfig.height,
+      alt: logoConfig.alt,
+    }],
     locale: 'en_US',
     type: 'website',
   },
@@ -40,12 +46,21 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "pvAI - Powered by pv.market",
     description: "Advanced AI assistant for pv.market - Get instant answers and insights about solar energy and photovoltaics.",
-    images: ['/PvChatbot-logo.png'],
+    images: [{
+      url: logoConfig.url,
+      width: logoConfig.width,
+      height: logoConfig.height,
+      alt: logoConfig.alt,
+    }],
   },
   icons: {
     icon: [
       { url: '/PvChatbot-logo.ico' },
-      { url: '/PvChatbot-logo.png', type: 'image/png' },
+      { 
+        url: logoConfig.url, 
+        type: 'image/png',
+        sizes: `${logoConfig.width}x${logoConfig.height}`,
+      },
     ],
     apple: [
       { url: '/apple-icon.png' },
