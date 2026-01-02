@@ -3,19 +3,44 @@ const nextConfig = {
   output: 'standalone',
   devIndicators: false,
   images: {
-    domains: [
-      'pvmarket.com',
-      'www.pvmarket.com',
-      'pv.market',
-      'www.pv.market',
-      'storage.googleapis.com',
-      'lh3.googleusercontent.com',
-      'firebasestorage.googleapis.com'
-    ],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'pvmarket.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.pvmarket.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pv.market',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.pv.market',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+      },
+      {
+        protocol: 'http',
+        hostname: 'bs-local.com',
+        port: '3000',
       },
     ],
   },
