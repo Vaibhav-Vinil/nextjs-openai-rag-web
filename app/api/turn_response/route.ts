@@ -4,6 +4,8 @@ import { checkQueryLimit, recordQuery } from "@/lib/utils/queryLimiter";
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 import { selectDomainsForQuery } from "@/lib/domains/selector";
+import { turnResponseSchema, validateRequestBody } from "@/lib/validation/schemas";
+import { applyRateLimit, RATE_LIMIT_CONFIGS } from "@/lib/security/rate-limiter";
 
 const extractLatestUserQuery = (messages: any[]): string | null => {
   if (!Array.isArray(messages)) {
@@ -53,7 +55,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const { messages, toolsState } = await request.json();
+    // Apply rate limiting (30 requests/minute for AI endpoints)
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.ai, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    // Validate request body with Zod schema
+    const validation = await validateRequestBody(request, turnResponseSchema);
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({
+          error: "Invalid request",
+          message: validation.error
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { messages, toolsState } = validation.data;
     const userId = user.id;
 
     // Check query limit
@@ -71,7 +91,7 @@ export async function POST(request: Request) {
 
     // Record this query and get the result
     const recordResult = await recordQuery(userId, 'assistant_query');
-    
+
     if (!recordResult.success) {
       console.error('Failed to record query:', recordResult.error);
       return new Response(
@@ -90,11 +110,11 @@ export async function POST(request: Request) {
         try {
           // Get the max_domains from webSearchConfig, defaulting to 5 if not set
           const maxDomainsFromConfig = toolsState?.webSearchConfig?.max_domains || 5;
-          
+
           // Always pass max_domains to ensure it's enforced
           const selection = await selectDomainsForQuery(
             latestUserQuery,
-            { 
+            {
               max_domains: maxDomainsFromConfig,
               // Keep any existing overrides
               ...(toolsState.webSearchConfig || {})
@@ -121,7 +141,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const tools = await getTools(toolsState, {
+    const tools = await getTools(toolsState as any, {
       overrideAllowedDomains,
     });
     const openai = new OpenAI();
@@ -132,29 +152,29 @@ export async function POST(request: Request) {
     // Clean messages for API compatibility
     const cleanMessages = (messages: any[]) => {
       const cleaned = [];
-      
+
       for (let i = 0; i < messages.length; i++) {
         const msg = messages[i];
-        
+
         // Skip reasoning messages for GPT-5.1
         if (MODEL.includes('gpt-5') && msg.type === 'reasoning') {
           continue;
         }
-        
+
         // Ensure message has required fields
         if (msg.role && (msg.content || msg.content === '')) {
           cleaned.push({
             role: msg.role,
-            content: Array.isArray(msg.content) 
+            content: Array.isArray(msg.content)
               ? msg.content.map((item: any) => ({
-                  type: item.type || 'text',
-                  text: item.text || JSON.stringify(item)
-                }))
+                type: item.type || 'text',
+                text: item.text || JSON.stringify(item)
+              }))
               : msg.content
           });
         }
       }
-      
+
       return cleaned;
     };
 
@@ -207,7 +227,7 @@ export async function POST(request: Request) {
           controller.close();
         } catch (error: any) {
           console.error("Error in streaming loop:", error);
-          
+
           // Handle quota exceeded error during streaming
           if (error.code === 'insufficient_quota' || error.status === 429) {
             const errorData = JSON.stringify({

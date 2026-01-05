@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/config/admin-emails";
 import { NextRequest, NextResponse } from "next/server";
+import { adminConfigSchema, validateRequestBody } from "@/lib/validation/schemas";
+import { applyRateLimit, RATE_LIMIT_CONFIGS } from "@/lib/security/rate-limiter";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -14,6 +16,12 @@ export async function GET() {
     // Check if user is admin
     if (!isAdmin(user.email || "")) {
       return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
+    }
+
+    // Apply rate limiting for admin endpoints
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.admin, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
 
     // Get all admin configurations
@@ -54,12 +62,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { key, value, description } = body;
-
-    if (!key || value === undefined) {
-      return NextResponse.json({ error: "Key and value are required" }, { status: 400 });
+    // Apply rate limiting
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.admin, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
+
+    // Validate request body with Zod schema
+    const validation = await validateRequestBody(request, adminConfigSchema);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const { key, value, description } = validation.data;
 
     // Upsert configuration
     const { data, error } = await supabase
@@ -99,11 +114,36 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json();
+    // Apply rate limiting
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.admin, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+    }
+
     const { configurations } = body; // Expecting { key: value } object
 
-    if (!configurations || typeof configurations !== "object") {
-      return NextResponse.json({ error: "Configurations object is required" }, { status: 400 });
+    // Validate configurations object
+    if (!configurations || typeof configurations !== "object" || Array.isArray(configurations)) {
+      return NextResponse.json({ error: "Configurations must be a valid object" }, { status: 400 });
+    }
+
+    // Validate each key doesn't exceed length limits
+    const entries = Object.entries(configurations);
+    if (entries.length > 100) {
+      return NextResponse.json({ error: "Too many configurations (max 100)" }, { status: 400 });
+    }
+
+    for (const [key] of entries) {
+      if (typeof key !== "string" || key.length > 100) {
+        return NextResponse.json({ error: "Configuration keys must be strings with max 100 characters" }, { status: 400 });
+      }
     }
 
     // Batch update configurations

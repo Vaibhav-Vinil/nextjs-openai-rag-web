@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { conversationSchema, validateRequestBody } from "@/lib/validation/schemas";
+import { applyRateLimit, RATE_LIMIT_CONFIGS } from "@/lib/security/rate-limiter";
 
 // GET: List all conversations for the current user
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -12,6 +14,12 @@ export async function GET() {
         { error: "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    // Apply rate limiting for GET requests
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.standard, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
 
     const { data, error } = await supabase
@@ -51,15 +59,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const { title, conversation_items, chat_messages } = body;
+    // Apply rate limiting
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.standard, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
-    if (!conversation_items || !chat_messages) {
+    // Validate request body with Zod schema
+    const validation = await validateRequestBody(request, conversationSchema);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "conversation_items and chat_messages are required" },
+        { error: validation.error },
         { status: 400 }
       );
     }
+
+    const { title, conversation_items, chat_messages } = validation.data;
 
     // Generate title from first user message if not provided
     let conversationTitle = title;

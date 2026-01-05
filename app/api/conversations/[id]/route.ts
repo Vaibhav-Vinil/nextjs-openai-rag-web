@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { conversationUpdateSchema, validateRequestBody, uuidSchema } from "@/lib/validation/schemas";
+import { applyRateLimit, RATE_LIMIT_CONFIGS } from "@/lib/security/rate-limiter";
 
 // GET: Get a specific conversation
 export async function GET(
@@ -17,14 +19,29 @@ export async function GET(
       );
     }
 
+    // Apply rate limiting
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.standard, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { id } = await params;
-    
+
+    // Validate ID format
+    const idValidation = uuidSchema.safeParse(id);
+    if (!idValidation.success) {
+      return NextResponse.json(
+        { error: "Invalid conversation ID format" },
+        { status: 400 }
+      );
+    }
+
     // First check if user is admin
     const { data: adminData } = await supabase.rpc('is_admin');
     const isAdmin = adminData || false;
 
     let data, error;
-    
+
     if (isAdmin) {
       // Use the admin function that bypasses RLS
       const result = await supabase
@@ -82,16 +99,40 @@ export async function PUT(
         { status: 401 }
       );
     }
-    
+
+    // Apply rate limiting
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.standard, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { id } = await params;
 
-    const body = await request.json();
-    const { title, conversation_items, chat_messages } = body;
+    // Validate ID format
+    const idValidation = uuidSchema.safeParse(id);
+    if (!idValidation.success) {
+      return NextResponse.json(
+        { error: "Invalid conversation ID format" },
+        { status: 400 }
+      );
+    }
 
-    const updateData: any = {};
+    // Validate request body
+    const validation = await validateRequestBody(request, conversationUpdateSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      );
+    }
+
+    const { title, conversation_items, chat_messages, is_shared } = validation.data;
+
+    const updateData: Record<string, unknown> = {};
     if (title !== undefined) updateData.title = title;
     if (conversation_items !== undefined) updateData.conversation_items = conversation_items;
     if (chat_messages !== undefined) updateData.chat_messages = chat_messages;
+    if (is_shared !== undefined) updateData.is_shared = is_shared;
 
     const { data, error } = await supabase
       .from("conversations")
@@ -140,8 +181,23 @@ export async function DELETE(
         { status: 401 }
       );
     }
-    
+
+    // Apply rate limiting
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.standard, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { id } = await params;
+
+    // Validate ID format
+    const idValidation = uuidSchema.safeParse(id);
+    if (!idValidation.success) {
+      return NextResponse.json(
+        { error: "Invalid conversation ID format" },
+        { status: 400 }
+      );
+    }
 
     const { error } = await supabase
       .from("conversations")
@@ -166,4 +222,3 @@ export async function DELETE(
     );
   }
 }
-
