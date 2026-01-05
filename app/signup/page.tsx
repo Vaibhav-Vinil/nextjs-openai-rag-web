@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import GoogleSignInButton from "@/components/google-signin-button";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -521,6 +522,18 @@ export default function SignUpPage() {
             )}
           </Button>
 
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton text="Sign up with Google" />
+
+
           <div className="text-center text-sm text-gray-600">
             Already have an account?{" "}
             <Link href="/login" className="text-blue-600 hover:underline">
@@ -529,7 +542,7 @@ export default function SignUpPage() {
           </div>
         </form>
       </div>
-    </div>
+    </div >
   );
 }
 
