@@ -1,19 +1,37 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { z } from "zod";
-
-const manageDomainsSchema = z.object({
-  action: z.enum(["add", "remove", "list", "clear"]),
-  domain: z.string().optional(),
-  _domains: z.array(z.string()).optional(),
-});
+import { manageDomainsSchema, validateRequestBody } from "@/lib/validation/schemas";
+import { applyRateLimit, RATE_LIMIT_CONFIGS } from "@/lib/security/rate-limiter";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { action, domain } = manageDomainsSchema.parse(body);
-
+    // Check authentication
     const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // Apply rate limiting
+    const rateLimitResponse = applyRateLimit(request, RATE_LIMIT_CONFIGS.standard, user.id);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    // Validate request body
+    const validation = await validateRequestBody(request, manageDomainsSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      );
+    }
+
+    const { action, domain } = validation.data;
 
     switch (action) {
       case "list": {
