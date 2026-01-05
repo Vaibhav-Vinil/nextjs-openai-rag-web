@@ -153,11 +153,13 @@ export const toolsStateSchema = z.object({
 
 /**
  * Main turn response request schema
+ * Uses passthrough to allow additional fields (e.g., googleIntegrationEnabled)
+ * while still validating the core required fields
  */
 export const turnResponseSchema = z.object({
     messages: z.array(messageSchema).max(500, "Too many messages in conversation"),
     toolsState: toolsStateSchema,
-}).strict();
+}).passthrough(); // Allow additional fields like googleIntegrationEnabled
 
 // =============================================================================
 // DOMAIN SCHEMAS

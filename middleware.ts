@@ -43,27 +43,26 @@ const securityHeaders = (isProduction: boolean) => {
     const csp = [
       // Base restrictions
       `default-src 'self' ${isLocalhost ? 'http://localhost:3000' : ''}`,
-      
+
       // Scripts
       `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${[
         ...(isLocalhost ? ['http://localhost:3000'] : []),
         'https://www.googletagmanager.com',
         'https://www.google-analytics.com',
         'https://www.google.com',
-        'https://www.gstatic.com',
-        '"self"'
+        'https://www.gstatic.com'
       ].join(' ')}`,
-      
+
       // Styles
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${isLocalhost ? 'http://localhost:3000' : ''}`,
-      
+
       // Media
       `img-src 'self' data: blob: https: ${isLocalhost ? 'http:' : ''}`,
       `media-src 'self' data: blob: ${isLocalhost ? 'http://localhost:3000' : ''}`,
-      
+
       // Fonts
       `font-src 'self' https://fonts.gstatic.com ${isLocalhost ? 'http://localhost:3000' : ''}`,
-      
+
       // Connections
       `connect-src 'self' ${[
         ...(isLocalhost ? [
@@ -78,22 +77,21 @@ const securityHeaders = (isProduction: boolean) => {
         'https://*.pv.market',
         'https://adnizkzzjhrpctohmfih.supabase.co',
         'https://*.supabase.co',
-        'wss://*.supabase.co',
-        '"self"'
+        'wss://*.supabase.co'
       ].join(' ')}`,
-      
+
       // Frames
       `frame-src 'self' ${isLocalhost ? 'http://localhost:3000' : ''} https://www.google.com https://www.youtube.com https://www.googletagmanager.com`,
-      
+
       // Other security directives
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       `frame-ancestors 'self' ${isProduction ? 'https://pv.market' : 'http://localhost:3000'}`,
-      
+
       // Only force HTTPS in production
       isProduction ? 'upgrade-insecure-requests' : '',
-      
+
       // Report violations (for monitoring)
       isProduction ? 'report-uri https://your-monitoring-endpoint.com/csp-report' : ''
     ].filter(Boolean).join('; ');
