@@ -47,11 +47,23 @@ export async function POST(request: Request) {
 
         // Check if Abstract API key is configured
         const apiKey = process.env.ABSTRACT_API_KEY || process.env.NEXT_PUBLIC_ABSTRACT_API_KEY;
+        const strictSecurity = process.env.ENABLE_STRICT_SECURITY === 'true';
+
         console.log(`[Phone Validation] API Key present: ${!!apiKey}`);
 
         if (!apiKey) {
-            // If no API key, skip validation and return valid
-            // This allows the app to work without phone validation configured
+            // If strictly secure, we must NOT bypass validation if the service is unconfigured
+            if (strictSecurity) {
+                console.error("[Phone Validation] Strict security enabled but API key missing. Blocking request.");
+                return NextResponse.json({
+                    valid: false,
+                    skipped: false,
+                    message: "Validation service configuration error. Please contact support.",
+                });
+            }
+
+            // If no API key and NOT strict, skip validation and return valid
+            // This allows the app to work locally without phone validation configured
             console.warn("[Phone Validation] ABSTRACT_API_KEY not configured, skipping phone validation");
             return NextResponse.json({
                 valid: true,
