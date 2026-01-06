@@ -3,44 +3,11 @@ import { getTools } from "@/lib/tools/tools";
 import { checkQueryLimit, recordQuery } from "@/lib/utils/queryLimiter";
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
-import { selectDomainsForQuery } from "@/lib/domains/selector";
+
 import { turnResponseSchema, validateRequestBody } from "@/lib/validation/schemas";
 import { applyRateLimit, RATE_LIMIT_CONFIGS } from "@/lib/security/rate-limiter";
 
-const extractLatestUserQuery = (messages: any[]): string | null => {
-  if (!Array.isArray(messages)) {
-    return null;
-  }
 
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i];
-    if (!message || message.role !== "user" || !message.content) {
-      continue;
-    }
-
-    if (typeof message.content === "string" && message.content.trim()) {
-      return message.content.trim();
-    }
-
-    if (Array.isArray(message.content)) {
-      for (const part of message.content) {
-        if (typeof part === "string" && part.trim()) {
-          return part.trim();
-        }
-        if (
-          typeof part === "object" &&
-          part?.type === "input_text" &&
-          typeof part.text === "string" &&
-          part.text.trim()
-        ) {
-          return part.text.trim();
-        }
-      }
-    }
-  }
-
-  return null;
-};
 
 export async function POST(request: Request) {
   try {
@@ -103,47 +70,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let overrideAllowedDomains: string[] | undefined;
-    if (toolsState.webSearchEnabled) {
-      const latestUserQuery = extractLatestUserQuery(messages);
-      if (latestUserQuery) {
-        try {
-          // Get the max_domains from webSearchConfig, defaulting to 5 if not set
-          const maxDomainsFromConfig = toolsState?.webSearchConfig?.max_domains || 5;
-
-          // Always pass max_domains to ensure it's enforced
-          const selection = await selectDomainsForQuery(
-            latestUserQuery,
-            {
-              max_domains: maxDomainsFromConfig,
-              // Keep any existing overrides
-              ...(toolsState.webSearchConfig || {})
-            },
-            supabase,
-            messages
-          );
-
-          if (selection.domains.length > 0) {
-            // Ensure we don't exceed max_domains
-            overrideAllowedDomains = selection.domains
-              .slice(0, maxDomainsFromConfig)
-              .map((domain) => domain.domain);
-
-            console.log(
-              `Dynamic domain selection for query (max ${maxDomainsFromConfig} domains):`,
-              latestUserQuery,
-              overrideAllowedDomains
-            );
-          }
-        } catch (error) {
-          console.error("Dynamic domain selection failed:", error);
-        }
-      }
-    }
-
-    const tools = await getTools(toolsState as any, {
-      overrideAllowedDomains,
-    });
+    const tools = await getTools(toolsState as any);
     const openai = new OpenAI();
 
     console.log("Tools:", tools);

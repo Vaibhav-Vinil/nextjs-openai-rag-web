@@ -7,14 +7,8 @@ interface WebSearchTool extends WebSearchConfig {
   type: "web_search";
 }
 
-interface GetToolsOptions {
-  overrideAllowedDomains?: string[];
-}
-
 export const getTools = async (
-  toolsState: ToolsState,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _options?: GetToolsOptions
+  toolsState: ToolsState
 ) => {
   const {
     webSearchEnabled,
@@ -34,7 +28,7 @@ export const getTools = async (
     const webSearchTool: WebSearchTool = {
       type: "web_search",
     };
-    
+
     // Add user location if provided
     if (
       webSearchConfig.user_location &&
