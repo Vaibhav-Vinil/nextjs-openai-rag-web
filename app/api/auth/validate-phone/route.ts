@@ -46,11 +46,13 @@ export async function POST(request: Request) {
         const { phone } = validation.data;
 
         // Check if Abstract API key is configured
-        const apiKey = process.env.ABSTRACT_API_KEY;
+        const apiKey = process.env.ABSTRACT_API_KEY || process.env.NEXT_PUBLIC_ABSTRACT_API_KEY;
+        console.log(`[Phone Validation] API Key present: ${!!apiKey}`);
+
         if (!apiKey) {
             // If no API key, skip validation and return valid
             // This allows the app to work without phone validation configured
-            console.warn("ABSTRACT_API_KEY not configured, skipping phone validation");
+            console.warn("[Phone Validation] ABSTRACT_API_KEY not configured, skipping phone validation");
             return NextResponse.json({
                 valid: true,
                 skipped: true,
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
         }
 
         // Call Abstract API from server-side (API key is never exposed to client)
+        console.log(`[Phone Validation] Validating phone: ${phone}`);
         const response = await fetch(
             `https://phoneintelligence.abstractapi.com/v1/?api_key=${apiKey}&phone=${encodeURIComponent(phone)}`,
             {
@@ -70,31 +73,39 @@ export async function POST(request: Request) {
         );
 
         if (!response.ok) {
-            console.error("Abstract API error:", response.status, response.statusText);
-            // Don't expose API errors to client, just allow the signup to proceed
+            console.error(`[Phone Validation] Abstract API error: ${response.status} ${response.statusText}`);
+            // If the API errors out, we should probably fail validation to be safe, 
+            // strictly following the user's report that invalid numbers caused 500s.
             return NextResponse.json({
-                valid: true,
-                skipped: true,
-                message: "Phone validation service unavailable",
+                valid: false,
+                skipped: false,
+                message: "Could not validate phone number. Please check the format.",
             });
         }
 
         const data = await response.json();
+        console.log(`[Phone Validation] Abstract API Response:`, JSON.stringify(data, null, 2));
 
         // Return sanitized response (don't expose raw API response)
-        return NextResponse.json({
-            valid: data.valid ?? true,
-            country: data.country?.name || null,
-            type: data.type || null,
-        });
+        // Correctly map the nested is_valid property
+        const isValid = data.phone_validation?.is_valid ?? false;
+
+        const result = {
+            valid: isValid,
+            country: data.phone_location?.country_name || null,
+            type: data.phone_carrier?.line_type || null,
+        };
+        console.log(`[Phone Validation] Result:`, result);
+
+        return NextResponse.json(result);
 
     } catch (error) {
         console.error("Phone validation error:", error);
-        // On error, allow signup to proceed
+        // On strict error, fail validation
         return NextResponse.json({
-            valid: true,
-            skipped: true,
-            message: "Phone validation error",
+            valid: false,
+            skipped: false,
+            message: "Phone validation error occurred.",
         });
     }
 }
