@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import GoogleSignInButton from "@/components/google-signin-button";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -30,7 +31,7 @@ export default function LoginPage() {
 
       // Check if user is already authenticated
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session) {
         // If user is authenticated and just verified, redirect to the chat
         if (verified === 'true') {
@@ -48,7 +49,7 @@ export default function LoginPage() {
         // Clear the URL parameters to prevent showing the message again on refresh
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, '', cleanUrl);
-      } 
+      }
       // Handle verification sent message from signup
       else if (verificationSent === 'true' && email) {
         setSuccess(`A verification link has been sent to ${email}. Please check your email.`);
@@ -151,13 +152,13 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-2xl font-bold text-center mb-6">Login to your account</h1>
-          
+
           {success && (
             <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md text-sm">
               {success}
             </div>
           )}
-          
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
               {error}
@@ -208,6 +209,18 @@ export default function LoginPage() {
           >
             {loading ? "Logging in..." : "Login"}
           </Button>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton text="Sign in with Google" />
+
           <div className="flex justify-between items-center mt-2">
             <p className="text-sm text-gray-600">
               Don&apos;t have an account?{" "}

@@ -41,7 +41,7 @@ function CollapsibleConversationSidebar({
 
     // Set initial state
     handleResize();
-    
+
     // Update on window resize
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -50,32 +50,31 @@ function CollapsibleConversationSidebar({
   return (
     <div className="flex relative">
       {/* Sidebar */}
-      <div 
-        className={`fixed md:relative z-30 h-full w-64 bg-[#f8fafc] shadow-lg md:shadow-none transform-gpu will-change-transform ${
-          externalIsOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed md:relative z-30 h-full w-64 bg-[#f8fafc] shadow-lg md:shadow-none transform-gpu will-change-transform ${externalIsOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         style={{
           transform: externalIsOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
         }}
       >
         <div className="h-full overflow-y-auto">
-          <ConversationHistory 
-            userEmail={userEmail} 
-            userId={userId} 
+          <ConversationHistory
+            userEmail={userEmail}
+            userId={userId}
             displayName={displayName}
-            onLogout={onLogout} 
-          publicView={publicView}
-          adminViewUserId={adminViewUserId}
+            onLogout={onLogout}
+            publicView={publicView}
+            adminViewUserId={adminViewUserId}
           />
         </div>
       </div>
-      
+
       {/* Toggle button has been moved to the main layout */}
-      
+
       {/* Overlay for mobile - only show when sidebar is open on mobile */}
       {externalIsOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 z-20 md:hidden"
           onClick={() => onSetIsOpen(false)}
           style={{
@@ -98,13 +97,13 @@ export default function Main() {
   const [displayName, setDisplayName] = useState<string>("");
   const [shareCopied, setShareCopied] = useState(false);
   const [adminViewUserId, setAdminViewUserId] = useState<string | null>(null);
-  
+
   // Handle sidebar open/close state
   const handleSidebarOpenChange = useCallback((open: boolean) => {
     setIsSidebarOpen(open);
   }, []);
   // Removed unused hasUserSentMessage state as it's not being used
-  
+
   // Detect if we're viewing a public/shared conversation via URL params
   const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   // Consider both full conversation shares and single-response snippet shares public
@@ -119,6 +118,14 @@ export default function Main() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        // Enforce phone number collection
+        // Check both top-level phone and metadata phone
+        const hasPhone = session.user.phone || session.user.user_metadata?.phone;
+        if (!hasPhone) {
+          router.push("/complete-profile");
+          return;
+        }
+
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
         setDisplayName(session.user.user_metadata?.full_name || session.user.user_metadata?.display_name || "");
@@ -139,6 +146,13 @@ export default function Main() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
+        // Enforce phone number collection
+        const hasPhone = session.user.phone || session.user.user_metadata?.phone;
+        if (!hasPhone) {
+          router.push("/complete-profile");
+          return;
+        }
+
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
         setUserId(session.user.id);
@@ -171,7 +185,7 @@ export default function Main() {
   // Handle shared conversation and message URLs
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const conversationId = urlParams.get("conv");
     const messageIndex = urlParams.get("msg");
@@ -269,7 +283,7 @@ export default function Main() {
       const loadSharedConversation = async () => {
         try {
           let data;
-          
+
           if (isAdminView) {
             // Use admin API endpoint to view any conversation
             const response = await fetch(`/admin/api/conversations/view/${conversationId}`);
@@ -297,7 +311,7 @@ export default function Main() {
             const { loadConversation: loadConvData } = await import("@/lib/conversations");
             data = await loadConvData(conversationId);
           }
-          
+
           if (data) {
             const { loadConversation, setCurrentConversationId } = useConversationStore.getState();
             // If this is a public/shared conversation or admin view, load it into the UI
@@ -312,7 +326,7 @@ export default function Main() {
             } else {
               loadConversation(data.conversation_items, data.chat_messages, conversationId);
             }
-            
+
             // If message index is specified, we could scroll to that message
             if (messageIndex) {
               // TODO: Implement scroll to message functionality
@@ -323,7 +337,7 @@ export default function Main() {
           console.error("Error loading shared conversation:", error);
         }
       };
-      
+
       loadSharedConversation();
       // Keep the `conv` URL params intact so the shared link persists
       // in the address bar instead of navigating back to the base URL.
@@ -384,7 +398,7 @@ export default function Main() {
 
       {/* Mobile Overlay */}
       {isAuthenticated && isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -392,10 +406,9 @@ export default function Main() {
 
       {/* Sidebar */}
       {isAuthenticated && (
-        <div 
-          className={`fixed z-40 h-full transition-all duration-300 ease-out bg-white shadow-lg ${
-            isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
-          }`}
+        <div
+          className={`fixed z-40 h-full transition-all duration-300 ease-out bg-white shadow-lg ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
+            }`}
           style={{
             transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
             position: 'fixed',
@@ -420,10 +433,9 @@ export default function Main() {
       )}
 
       {/* Main Content */}
-      <div 
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'md:ml-64' : 'md:ml-0'
-        }`}
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'md:ml-64' : 'md:ml-0'
+          }`}
         style={{
           width: '100%',
           maxWidth: '100%',
@@ -464,7 +476,7 @@ export default function Main() {
                   <span className="text-sm">Share</span>
                 )}
               </button>
-              
+
               {isAdmin(userEmail) && (
                 <button
                   onClick={() => router.push("/admin")}

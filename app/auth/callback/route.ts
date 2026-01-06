@@ -5,10 +5,12 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const token_hash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
+  const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next') ?? '/'
   const error = requestUrl.searchParams.get('error')
   const errorDescription = requestUrl.searchParams.get('error_description')
   const origin = requestUrl.origin
-  
+
   // If there's an error, redirect to login with error details
   if (error) {
     console.error('Auth error:', { error, errorDescription })
@@ -43,11 +45,36 @@ export async function GET(request: Request) {
     }
   }
 
-  // Handle OAuth callbacks
+  // Handle OAuth Code Exchange (PKCE)
+  if (code) {
+    const supabase = await createClient()
+    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (!sessionError) {
+      const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+      const isLocalEnv = process.env.NODE_ENV === 'development'
+
+      if (isLocalEnv) {
+        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
+        return NextResponse.redirect(`${origin}${next}`)
+      } else if (forwardedHost) {
+        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+      } else {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
+    }
+
+    console.error('OAuth code exchange error:', sessionError?.message)
+    return NextResponse.redirect(
+      `${origin}/login?error=oauth_error&message=${encodeURIComponent(sessionError?.message || 'Failed to exchange code')}`
+    )
+  }
+
+  // Handle legacy/implicit OAuth callbacks (if any)
   if (type === 'oauth') {
     const supabase = await createClient()
     const { data, error: oauthError } = await supabase.auth.getSession()
-    
+
     if (oauthError) {
       console.error('OAuth callback error:', oauthError.message)
       return NextResponse.redirect(

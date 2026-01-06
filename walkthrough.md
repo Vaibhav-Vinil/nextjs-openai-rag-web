@@ -36,6 +36,7 @@ The project is built with **Next.js 15 (App Router)** and follows a modular arch
 
 ### 2.2 Authentication
 - **Supabase Auth**: Handles user signup, login, and session management.
+- **Google Sign-In**: Integrated via `signInWithOAuth` in `components/google-signin-button.tsx`.
 - **Middleware**: `middleware.ts` protects routes and ensures authenticated access to specific pages.
 - **Secure Phone Validation**: Server-side endpoint `/api/auth/validate-phone` prevents API key exposure.
 
