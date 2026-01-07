@@ -22,11 +22,25 @@ export async function GET(request: Request) {
       return rateLimitResponse;
     }
 
-    const { data, error } = await supabase
+    // Parse URL parameters for pagination and search
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = parseInt(searchParams.get("offset") || "0");
+    const query = searchParams.get("q") || "";
+
+    let supabaseQuery = supabase
       .from("conversations")
       .select("id, title, created_at, updated_at")
-      .eq("user_id", user.id)
-      .order("updated_at", { ascending: false });
+      .eq("user_id", user.id);
+
+    // Apply search filter if query is provided
+    if (query) {
+      supabaseQuery = supabaseQuery.ilike("title", `%${query}%`);
+    }
+
+    const { data, error } = await supabaseQuery
+      .order("updated_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error("Error fetching conversations:", error);

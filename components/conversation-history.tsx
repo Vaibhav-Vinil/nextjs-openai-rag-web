@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare, LogOut, X, Check, Search, Trash2, Share2 } from "lucide-react";
 import Image from "next/image";
 import QueryLimitDisplay from "./query-limit-display";
-import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation, listUserConversationsForAdmin } from "@/lib/conversations";
+import { Conversation, listConversations, deleteConversation, loadConversation, listUserConversationsForAdmin } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -22,185 +22,98 @@ interface ConversationHistoryProps {
 export default function ConversationHistory({ userEmail, userId, displayName, onLogout, publicView, adminViewUserId }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const limit = 20;
+
   const { currentConversationId, resetConversation, loadConversation: loadConv, setCurrentConversationId, setConversationLoading } = useConversationStore();
+  const router = useRouter();
+  const observerTarget = useRef(null);
 
-  const fetchConversations = useCallback(async () => {
-    setLoading(true);
-    let convs: Conversation[] = [];
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-    // In admin_view mode with a target user, fetch that user's conversations
-    if (adminViewUserId) {
-      convs = await listUserConversationsForAdmin(adminViewUserId);
+  const fetchConversations = useCallback(async (currentOffset: number, query: string, isInitial: boolean = false) => {
+    if (isInitial) {
+      setLoading(true);
+      setOffset(0); // Reset offset for initial/new search
+      setHasMore(true); // Assume more until proven otherwise
     } else {
-      convs = await listConversations();
+      setLoadingMore(true);
     }
 
-    setConversations(convs);
-    setLoading(false);
-  }, [adminViewUserId]);
+    try {
+      let convs: Conversation[] = [];
+      if (adminViewUserId) {
+        convs = await listUserConversationsForAdmin(adminViewUserId, limit, currentOffset, query);
+      } else {
+        convs = await listConversations(limit, currentOffset, query);
+      }
 
-  const router = useRouter();
+      if (isInitial) {
+        setConversations(convs);
+      } else {
+        setConversations(prev => [...prev, ...convs]);
+      }
 
+      setHasMore(convs.length === limit);
+      setOffset(currentOffset + convs.length);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [adminViewUserId, limit]);
+
+  // Initial load and Search reset
   useEffect(() => {
-    // If this is a public view and there is no authenticated user,
-    // skip fetching protected conversation lists to avoid 401s.
     if (publicView && !userEmail) {
       setLoading(false);
       return;
     }
+    fetchConversations(0, debouncedQuery, true);
+  }, [debouncedQuery, publicView, userEmail, fetchConversations]);
 
-    fetchConversations();
-  }, [publicView, userEmail, fetchConversations]);
-
-  // Search state with caching
-  const [searchResults, setSearchResults] = useState<Conversation[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
-  const [searchCache] = useState<Map<string, ConversationData>>(new Map());
-  const [foundInTitles, setFoundInTitles] = useState<Conversation[]>([]);
-  const [foundInContent, setFoundInContent] = useState<Conversation[]>([]);
-
-  // Debounced search with caching and incremental results
+  // Infinite scroll observer
   useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    if (searchQuery.trim() === '') {
-      setSearchResults([]);
-      setFoundInTitles([]);
-      setFoundInContent([]);
-      return;
-    }
-
-    const search = async () => {
-      const query = searchQuery.toLowerCase();
-      const searchStartTime = Date.now();
-      setIsSearching(true);
-      setFoundInTitles([]);
-      setFoundInContent([]);
-      
-      // First pass: title search (instant)
-      const titleMatches = conversations.filter(conv => 
-        conv.title.toLowerCase().includes(query)
-      );
-      
-      // Show title matches immediately
-      setFoundInTitles(titleMatches);
-      
-      // Second pass: content search for conversations not already matched
-      const remainingConversations = conversations.filter(conv => 
-        !titleMatches.some(match => match.id === conv.id)
-      );
-      
-      // Process in batches to avoid blocking UI
-      const batchSize = 5;
-      const contentMatches: Conversation[] = [];
-      
-      for (let i = 0; i < remainingConversations.length; i += batchSize) {
-        const batch = remainingConversations.slice(i, i + batchSize);
-        const batchResults = await Promise.all(
-          batch.map(async (conv) => {
-            try {
-              // Check cache first
-              if (searchCache.has(conv.id)) {
-                const cachedData = searchCache.get(conv.id)!;
-                return searchInContent(cachedData, query) ? conv : null;
-              }
-              
-              // Load from API if not in cache
-              const convData = await loadConversation(conv.id);
-              if (convData) {
-                searchCache.set(conv.id, convData);
-                return searchInContent(convData, query) ? conv : null;
-              }
-              return null;
-            } catch (error) {
-              console.error('Error searching conversation:', error);
-              return null;
-            }
-          })
-        );
-        
-        // Add found conversations to content matches
-        const newMatches = batchResults.filter(Boolean) as Conversation[];
-        if (newMatches.length > 0) {
-          contentMatches.push(...newMatches);
-          setFoundInContent(prev => [...prev, ...newMatches]);
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          fetchConversations(offset, debouncedQuery);
         }
-        
-        // Small delay to allow UI updates between batches
-        await new Promise(resolve => setTimeout(resolve, 20));
-      }
-      
-      // Ensure we don't show stale results if the search was cancelled
-      if (Date.now() - searchStartTime < 1000 || searchQuery === '') {
-        return;
-      }
-      
-      setIsSearching(false);
-    };
-    
-    searchTimeoutRef.current = setTimeout(search, 200); // Shorter debounce for better responsiveness
+      },
+      { threshold: 1.0 }
+    );
 
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery, conversations, searchCache]);
-  
-  // Combine title and content matches, removing duplicates
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
     }
-    
-    // Combine results, ensuring no duplicates
-    const combined = [...new Map([...foundInTitles, ...foundInContent].map(item => [item.id, item])).values()];
-    setSearchResults(combined);
-  }, [foundInTitles, foundInContent, searchQuery]);
 
-  // Helper function to search in conversation content
-  const searchInContent = (convData: ConversationData, query: string): boolean => {
-    if (!convData.chat_messages) return false;
-    
-    return convData.chat_messages.some((message: any) => {
-      if (message.type === 'message' && message.content) {
-        const messageText = message.content
-          .map((item: any) => item.text || '')
-          .join(' ')
-          .toLowerCase();
-        return messageText.includes(query);
-      }
-      return false;
-    });
-  };
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, offset, debouncedQuery, fetchConversations]);
 
-  const handleNewConversation = () => {
-    // In admin view of another user's history, do not allow creating new conversations
-    if (adminViewUserId) {
-      return;
-    }
-    // If this is a public/shared view and the visitor is not signed in,
-    // prompt them to sign up instead of attempting to fetch or create
-    // protected resources which would result in 401 errors.
+  const handleNewConversation = useCallback(() => {
+    if (adminViewUserId) return;
     if (publicView && !userEmail) {
-      // Redirect to signup page
       router.push('/signup');
       return;
     }
-
     resetConversation();
-    fetchConversations();
-  };
+    fetchConversations(0, debouncedQuery, true);
+  }, [adminViewUserId, publicView, userEmail, resetConversation, fetchConversations, debouncedQuery, router]);
 
   const handleLoadConversation = async (id: string) => {
     setConversationLoading(true);
     try {
-      // Pass isAdminView=true when in admin view
       const isAdminView = !!adminViewUserId;
       const data = await loadConversation(id, isAdminView);
       if (data) {
@@ -225,7 +138,7 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
       await fetch(`/api/conversations/${conversationId}/share`, {
         method: 'POST'
       });
-      
+
       const shareUrl = `${window.location.origin}?conv=${conversationId}&public=true`;
       await navigator.clipboard.writeText(shareUrl);
       setSharedConversationId(conversationId);
@@ -243,7 +156,7 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
         if (currentConversationId === id) {
           resetConversation();
         }
-        fetchConversations();
+        fetchConversations(0, debouncedQuery, true);
       }
     }
   };
@@ -251,14 +164,14 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
   return (
     <div className="h-full flex flex-col bg-transparent">
       {/* User info and logout */}
-      <div className="p-4">
+      <div className="p-4 flex-shrink-0">
         {userEmail && (
           <div className="mb-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
             <div className="flex flex-col items-center px-3 pt-1 pb-3">
               <div className="w-full px-2">
                 <div className="relative w-full" style={{ paddingBottom: '50%' }}>
-                  <Image 
-                    src="/PvChatbot-logo.png" 
+                  <Image
+                    src="/PvChatbot-logo.png"
                     alt="pvAI Logo"
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
@@ -292,7 +205,7 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
             )}
           </div>
         )}
-        
+
         {/* Search Input - Always Visible */}
         <div className="mb-3">
           <div className="relative">
@@ -301,22 +214,27 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
             </div>
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-10 py-2 bg-black/5 backdrop-blur-sm border border-black/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-transparent text-black placeholder-gray-500"
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-black/40 hover:text-black/80 transition-colors"
-              >
-                <X size={16} />
-              </button>
+            {(searchQuery || loading) && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                {loading && <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />}
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="text-black/40 hover:text-black/80 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
-        
+
         {!adminViewUserId && (
           <Button
             onClick={handleNewConversation}
@@ -328,79 +246,76 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
           </Button>
         )}
       </div>
-      
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
-        {loading ? (
-          <div className="text-center text-gray-700 py-4">Loading...</div>
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 custom-scrollbar">
+        {loading && conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-2">
+            <div className="w-6 h-6 border-2 border-black/10 border-t-black rounded-full animate-spin" />
+            <div className="text-sm text-gray-500">Loading history...</div>
+          </div>
         ) : conversations.length === 0 ? (
-          <div className="text-center text-gray-700 py-4">
-            No conversations yet
+          <div className="text-center text-gray-500 py-10 px-4">
+            {searchQuery ? "No matches found." : "No conversations yet."}
           </div>
         ) : (
-          <>
-            {searchQuery && (
-              <div className="px-3 py-2 text-sm text-white/80">
-                {isSearching ? (
-                  <span>Searching...</span>
-                ) : (
-                  <span>Found {searchResults.length} of {conversations.length} conversations</span>
-                )}
-              </div>
-            )}
-            <div className="space-y-1">
-              {(searchQuery ? searchResults : conversations).map((conv) => (
-                <div
-                  key={conv.id}
-                  onClick={() => handleLoadConversation(conv.id)}
-                  className={`p-3 rounded-xl cursor-pointer transition-all group ${
-                    currentConversationId === conv.id
-                      ? "bg-blue-500/30 backdrop-blur-md text-black border border-blue-400/30 shadow-md"
-                      : "bg-white/5 backdrop-blur-sm text-black/80 border border-white/5 hover:bg-white/10 hover:border-white/10 hover:backdrop-blur-md hover:shadow-md"
+          <div className="space-y-1">
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => handleLoadConversation(conv.id)}
+                className={`p-3 rounded-xl cursor-pointer transition-all group ${currentConversationId === conv.id
+                  ? "bg-blue-500/30 backdrop-blur-md text-black border border-blue-400/30 shadow-md"
+                  : "bg-white/5 backdrop-blur-sm text-black/80 border border-white/5 hover:bg-white/10 hover:border-white/10 hover:backdrop-blur-md hover:shadow-md"
                   }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <MessageSquare size={14} className="text-gray-600 flex-shrink-0" />
-                        <h3 className="text-sm font-medium truncate">
-                          {conv.title}
-                        </h3>
-                        {/* TODO: Add shareable indicator if conv.is_publicly_shareable */}
-                      </div>
-                      <p className="text-xs text-gray-700">
-                        {format(new Date(conv.updated_at), "MMM d, h:mm a")}
-                      </p>
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MessageSquare size={14} className="text-gray-600 flex-shrink-0" />
+                      <h3 className="text-sm font-medium truncate">
+                        {conv.title}
+                      </h3>
                     </div>
-                    {!adminViewUserId && (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={(e) => handleShareConversation(conv.id, e)}
-                          className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-blue-500/20 backdrop-blur-sm hover:backdrop-blur-md text-black"
-                          title={sharedConversationId === conv.id ? "Link copied!" : "Share conversation"}
-                        >
-                          {sharedConversationId === conv.id ? (
-                            <Check size={14} className="text-green-400" />
-                          ) : (
-                            <Share2 size={14} className="text-blue-400" />
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteConversation(conv.id, e);
-                          }}
-                          className="text-gray-600 hover:text-black hover:bg-red-500/20 p-1.5 -mr-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm hover:backdrop-blur-md"
-                          title="Delete conversation"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
+                    <p className="text-xs text-gray-700">
+                      {format(new Date(conv.updated_at), "MMM d, h:mm a")}
+                    </p>
                   </div>
+                  {!adminViewUserId && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={(e) => handleShareConversation(conv.id, e)}
+                        className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-blue-500/20 backdrop-blur-sm hover:backdrop-blur-md text-black"
+                        title={sharedConversationId === conv.id ? "Link copied!" : "Share conversation"}
+                      >
+                        {sharedConversationId === conv.id ? (
+                          <Check size={14} className="text-green-400" />
+                        ) : (
+                          <Share2 size={14} className="text-blue-400" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conv.id, e);
+                        }}
+                        className="text-gray-600 hover:text-black hover:bg-red-500/20 p-1.5 -mr-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm hover:backdrop-blur-md"
+                        title="Delete conversation"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))}
+              </div>
+            ))}
+
+            {/* Infinite scroll trigger */}
+            <div ref={observerTarget} className="h-10 flex items-center justify-center">
+              {loadingMore && (
+                <div className="w-4 h-4 border-2 border-black/10 border-t-black rounded-full animate-spin" />
+              )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
