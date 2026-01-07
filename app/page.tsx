@@ -48,7 +48,7 @@ function CollapsibleConversationSidebar({
   }, [onOpenChange, onSetIsOpen]);
 
   return (
-    <div className="flex relative">
+    <div className="flex relative h-full">
       {/* Sidebar */}
       <div
         className={`fixed md:relative z-30 h-full w-64 bg-[#f8fafc] shadow-lg md:shadow-none transform-gpu will-change-transform ${externalIsOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -58,7 +58,7 @@ function CollapsibleConversationSidebar({
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
         }}
       >
-        <div className="h-full overflow-y-auto">
+        <div className="h-full flex flex-col">
           <ConversationHistory
             userEmail={userEmail}
             userId={userId}

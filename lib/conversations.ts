@@ -75,7 +75,7 @@ export async function loadConversation(
   isAdminView: boolean = false
 ): Promise<ConversationData | null> {
   try {
-    const url = isAdminView 
+    const url = isAdminView
       ? `/admin/api/conversations/view/${conversationId}`
       : `/api/conversations/${conversationId}`;
 
@@ -88,10 +88,10 @@ export async function loadConversation(
     }
 
     const data = await response.json();
-    
+
     // Handle both regular and admin API response formats
     const conversation = data.conversation || data;
-    
+
     if (!conversation) {
       console.error("No conversation data found in response:", data);
       return null;
@@ -108,9 +108,18 @@ export async function loadConversation(
 }
 
 // List all conversations
-export async function listConversations(): Promise<Conversation[]> {
+export async function listConversations(
+  limit: number = 20,
+  offset: number = 0,
+  query: string = ""
+): Promise<Conversation[]> {
   try {
-    const response = await fetch("/api/conversations");
+    const url = new URL("/api/conversations", window.location.origin);
+    url.searchParams.set("limit", limit.toString());
+    url.searchParams.set("offset", offset.toString());
+    if (query) url.searchParams.set("q", query);
+
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       const error = await response.json();
@@ -128,10 +137,18 @@ export async function listConversations(): Promise<Conversation[]> {
 
 // List all conversations for a specific user (admin view)
 export async function listUserConversationsForAdmin(
-  userId: string
+  userId: string,
+  limit: number = 20,
+  offset: number = 0,
+  query: string = ""
 ): Promise<Conversation[]> {
   try {
-    const response = await fetch(`/admin/api/users/${userId}/conversations`);
+    const url = new URL(`/admin/api/users/${userId}/conversations`, window.location.origin);
+    url.searchParams.set("limit", limit.toString());
+    url.searchParams.set("offset", offset.toString());
+    if (query) url.searchParams.set("q", query);
+
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       const error = await response.json();
