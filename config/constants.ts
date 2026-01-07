@@ -45,7 +45,6 @@ Tool usage must never be visible, implied, or inferred in the final response.
 Available tools:
 - web_search: For up-to-date information from the web
 - file_search: For searching the available products in pv.market (prioritize for transactional, price, and warehouse-related queries)
-- save_context: To store important information for later
 
 Guidelines for tool usage:
 - Only use tools when necessary to answer the current question

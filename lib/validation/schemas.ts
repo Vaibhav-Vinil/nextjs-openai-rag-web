@@ -140,9 +140,7 @@ export const toolsStateSchema = z.object({
     webSearchEnabled: z.boolean().optional(),
     fileSearchEnabled: z.boolean().optional(),
     functionsEnabled: z.boolean().optional(),
-    codeInterpreterEnabled: z.boolean().optional(),
     mcpEnabled: z.boolean().optional(),
-    googleIntegrationEnabled: z.boolean().optional(),
     vectorStore: z.object({
         id: safeString(100),
         name: safeString(200),
@@ -153,41 +151,11 @@ export const toolsStateSchema = z.object({
 
 /**
  * Main turn response request schema
- * Uses passthrough to allow additional fields (e.g., googleIntegrationEnabled)
- * while still validating the core required fields
  */
 export const turnResponseSchema = z.object({
     messages: z.array(messageSchema).max(500, "Too many messages in conversation"),
     toolsState: toolsStateSchema,
-}).passthrough(); // Allow additional fields like googleIntegrationEnabled
-
-// =============================================================================
-// DOMAIN SCHEMAS
-// =============================================================================
-
-export const domainSchema = z.object({
-    domain: safeString(253), // Max domain length per RFC
-    category: safeString(100).optional(),
-    description: safeString(1000).optional(),
-    content_types: z.array(safeString(50)).max(20).optional(),
-    region: safeString(100).optional(),
-    topics: z.array(safeString(100)).max(50).optional(),
-    strengths: z.array(safeString(200)).max(20).optional(),
-    avoid_for: z.array(safeString(200)).max(20).optional(),
-}).passthrough();
-
-export const manageDomainsSchema = z.object({
-    action: z.enum(["add", "remove", "list", "clear"]),
-    domain: safeString(253).optional(),
-    _domains: z.array(safeString(253)).max(100).optional(),
-}).strict();
-
-export const domainSelectSchema = z.object({
-    query: safeString(5000),
-    maxDomains: z.number().int().min(1).max(50).optional(),
-    webSearchConfig: webSearchConfigSchema.optional(),
-    messages: z.array(messageSchema).max(500).optional(),
-}).strict();
+});
 
 // =============================================================================
 // ADMIN SCHEMAS

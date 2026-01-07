@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { checkQueryLimit } from '@/lib/utils/queryLimiter';
+import { checkQueryLimit } from '@/lib/security/queryLimiter';
 
 export async function GET() {
   try {
@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     const { remaining } = await checkQueryLimit(user.id);
-    
+
     return NextResponse.json({
       remaining,
       total: 5 // Daily limit

@@ -12,9 +12,7 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
     setWebSearchEnabled,
     setFileSearchEnabled,
     setFunctionsEnabled,
-    setCodeInterpreterEnabled,
     setMcpEnabled,
-    setGoogleIntegrationEnabled,
     setWebSearchConfig,
     setMcpConfig,
     setVectorStore,
@@ -28,7 +26,7 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
         const response = await fetch("/api/config");
         if (response.ok) {
           const config = await response.json();
-          
+
           // Apply configuration to store
           if (config.web_search_enabled !== undefined) {
             setWebSearchEnabled(config.web_search_enabled);
@@ -39,14 +37,8 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
           if (config.functions_enabled !== undefined) {
             setFunctionsEnabled(config.functions_enabled);
           }
-          if (config.code_interpreter_enabled !== undefined) {
-            setCodeInterpreterEnabled(config.code_interpreter_enabled);
-          }
           if (config.mcp_enabled !== undefined) {
             setMcpEnabled(config.mcp_enabled);
-          }
-          if (config.google_integration_enabled !== undefined) {
-            setGoogleIntegrationEnabled(config.google_integration_enabled);
           }
           if (config.web_search_config) {
             setWebSearchConfig(config.web_search_config);
@@ -68,9 +60,7 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
     setWebSearchEnabled,
     setFileSearchEnabled,
     setFunctionsEnabled,
-    setCodeInterpreterEnabled,
     setMcpEnabled,
-    setGoogleIntegrationEnabled,
     setWebSearchConfig,
     setMcpConfig,
     setVectorStore,

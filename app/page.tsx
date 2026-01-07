@@ -171,16 +171,6 @@ export default function Main() {
     return () => subscription.unsubscribe();
   }, [isPublicView, router, supabase]);
 
-  // After OAuth redirect, reinitialize the conversation so the next turn
-  // uses the connector-enabled server configuration immediately
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const isConnected = new URLSearchParams(window.location.search).get("connected");
-    if (isConnected === "1") {
-      resetConversation();
-      router.replace("/", { scroll: false });
-    }
-  }, [router, resetConversation]);
 
   // Handle shared conversation and message URLs
   useEffect(() => {

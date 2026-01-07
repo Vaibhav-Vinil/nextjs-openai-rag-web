@@ -1,7 +1,7 @@
 import { parse } from "partial-json";
 import { handleTool } from "@/lib/tools/tools-handling";
 import useConversationStore from "@/stores/useConversationStore";
-import useToolsStore, { ToolsState } from "@/stores/useToolsStore";
+import { ToolsState } from "@/stores/useToolsStore";
 import { functionsMap } from "@/config/functions";
 
 type Annotation = {
@@ -32,11 +32,10 @@ export interface MessageItem {
 export interface ToolCallItem {
   type: "tool_call";
   tool_type:
-    | "file_search_call"
-    | "web_search_call"
-    | "function_call"
-    | "mcp_call"
-    | "code_interpreter_call";
+  | "file_search_call"
+  | "web_search_call"
+  | "function_call"
+  | "mcp_call";
   status: "in_progress" | "completed" | "failed" | "searching";
   id: string;
   name?: string | null;
@@ -44,13 +43,6 @@ export interface ToolCallItem {
   arguments?: string;
   parsedArguments?: any;
   output?: string | null;
-  code?: string;
-  files?: {
-    file_id: string;
-    mime_type: string;
-    container_id?: string;
-    filename?: string;
-  }[];
 }
 
 export interface McpListToolsItem {
@@ -80,7 +72,6 @@ export const handleTurn = async (
   onMessage: (data: any) => void
 ) => {
   try {
-    const { googleIntegrationEnabled } = useToolsStore.getState();
     // Get response from the API (defined in app/api/turn_response/route.ts)
     const response = await fetch("/api/turn_response", {
       method: "POST",
@@ -88,7 +79,6 @@ export const handleTurn = async (
       body: JSON.stringify({
         messages: messages,
         toolsState: toolsState,
-        googleIntegrationEnabled,
       }),
     });
 
@@ -108,7 +98,7 @@ export const handleTurn = async (
       }
       return;
     }
-    
+
     // Trigger query limit update when we get a successful response
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('queryResponseReceived'));
@@ -156,6 +146,7 @@ export const handleTurn = async (
 };
 
 export const processMessages = async () => {
+  const store = useConversationStore.getState();
   const {
     chatMessages,
     conversationItems,
@@ -163,11 +154,9 @@ export const processMessages = async () => {
     setConversationItems,
     setAssistantLoading,
     setWebSearchIndicatorId,
-  } = useConversationStore.getState();
+  } = store;
 
-  const toolsState = useToolsStore.getState() as ToolsState;
-
-  const allConversationItems = conversationItems;
+  const toolsState = (await import("@/stores/useToolsStore")).default.getState() as any;
 
   let assistantMessageContent = "";
   let functionArguments = "";
@@ -175,14 +164,14 @@ export const processMessages = async () => {
   let mcpArguments = "";
 
   await handleTurn(
-    allConversationItems,
+    conversationItems,
     toolsState,
     async ({ event, data }) => {
       switch (event) {
         case "error": {
           // Handle different types of errors
           let errorMessage = "An unexpected error occurred. Please try again later.";
-          
+
           if (data.type === "query_limit_exceeded") {
             errorMessage = data.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at [info@pv.market](mailto:info@pv.market) or [+971 523825549](tel:+971523825549) for further support.";
           } else if (data.code === "insufficient_quota" || data.type === "quota_exceeded") {
@@ -190,7 +179,7 @@ export const processMessages = async () => {
           } else if (data.message) {
             errorMessage = data.message;
           }
-          
+
           // Add error message to chat
           chatMessages.push({
             type: "message",
@@ -249,16 +238,6 @@ export const processMessages = async () => {
             const contentItem = lastItem.content[0];
             if (contentItem && contentItem.type === "output_text") {
               contentItem.text = assistantMessageContent;
-              // Annotations are disabled to hide sources from users
-              // To re-enable, uncomment the lines below and comment out the current assignment
-              /*
-              if (annotation) {
-                contentItem.annotations = [
-                  ...(contentItem.annotations ?? []),
-                  normalizeAnnotation(annotation),
-                ];
-              }
-              */
               // Keep annotations empty to hide sources
               if (contentItem.annotations) {
                 contentItem.annotations = [];
@@ -282,12 +261,6 @@ export const processMessages = async () => {
           switch (item.type) {
             case "message": {
               const text = item.content?.text || "";
-              // Annotations are disabled to hide sources from users
-              // To re-enable, uncomment the lines below and comment out the empty annotations array
-              /*
-              const annotations =
-                item.content?.annotations?.map(normalizeAnnotation) || [];
-              */
               const annotations: Annotation[] = []; // Empty array to hide sources
               chatMessages.push({
                 type: "message",
@@ -365,18 +338,6 @@ export const processMessages = async () => {
                 arguments: item.arguments || "",
                 parsedArguments: item.arguments ? parse(item.arguments) : {},
                 output: null,
-              });
-              setChatMessages([...chatMessages]);
-              break;
-            }
-            case "code_interpreter_call": {
-              chatMessages.push({
-                type: "tool_call",
-                tool_type: "code_interpreter_call",
-                status: item.status || "in_progress",
-                id: item.id,
-                code: "",
-                files: [],
               });
               setChatMessages([...chatMessages]);
               break;
@@ -517,58 +478,6 @@ export const processMessages = async () => {
           const toolCallMessage = chatMessages.find((m) => m.id === item_id);
           if (toolCallMessage && toolCallMessage.type === "tool_call") {
             toolCallMessage.output = output;
-            toolCallMessage.status = "completed";
-            setChatMessages([...chatMessages]);
-          }
-          break;
-        }
-
-        case "response.code_interpreter_call_code.delta": {
-          const { delta, item_id } = data;
-          const toolCallMessage = [...chatMessages]
-            .reverse()
-            .find(
-              (m) =>
-                m.type === "tool_call" &&
-                m.tool_type === "code_interpreter_call" &&
-                m.status !== "completed" &&
-                m.id === item_id
-            ) as ToolCallItem | undefined;
-          // Accumulate deltas to show the code streaming
-          if (toolCallMessage) {
-            toolCallMessage.code = (toolCallMessage.code || "") + delta;
-            setChatMessages([...chatMessages]);
-          }
-          break;
-        }
-
-        case "response.code_interpreter_call_code.done": {
-          const { code, item_id } = data;
-          const toolCallMessage = [...chatMessages]
-            .reverse()
-            .find(
-              (m) =>
-                m.type === "tool_call" &&
-                m.tool_type === "code_interpreter_call" &&
-                m.status !== "completed" &&
-                m.id === item_id
-            ) as ToolCallItem | undefined;
-
-          // Mark the call as completed and set the code
-          if (toolCallMessage) {
-            toolCallMessage.code = code;
-            toolCallMessage.status = "completed";
-            setChatMessages([...chatMessages]);
-          }
-          break;
-        }
-
-        case "response.code_interpreter_call.completed": {
-          const { item_id } = data;
-          const toolCallMessage = chatMessages.find(
-            (m) => m.type === "tool_call" && m.id === item_id
-          ) as ToolCallItem | undefined;
-          if (toolCallMessage) {
             toolCallMessage.status = "completed";
             setChatMessages([...chatMessages]);
           }
