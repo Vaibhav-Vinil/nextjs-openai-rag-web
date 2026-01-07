@@ -6,7 +6,6 @@ import FunctionsView from "./functions-view";
 import McpConfig from "./mcp-config";
 import PanelConfig from "./panel-config";
 import useToolsStore from "@/stores/useToolsStore";
-import GoogleIntegrationPanel from "@/components/google-integration";
 
 export default function ToolsPanel() {
   const {
@@ -16,8 +15,6 @@ export default function ToolsPanel() {
     setWebSearchEnabled,
     functionsEnabled,
     setFunctionsEnabled,
-    googleIntegrationEnabled,
-    setGoogleIntegrationEnabled,
     mcpEnabled,
     setMcpEnabled,
     codeInterpreterEnabled,
@@ -29,7 +26,6 @@ export default function ToolsPanel() {
     vectorStore,
     setVectorStore,
   } = useToolsStore();
-  const [oauthConfigured, setOauthConfigured] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState(true);
 
   // Load configuration from admin API on mount
@@ -39,7 +35,7 @@ export default function ToolsPanel() {
         const response = await fetch("/api/admin/config");
         if (response.ok) {
           const config = await response.json();
-          
+
           // Apply configuration to store
           if (config.web_search_enabled !== undefined) {
             setWebSearchEnabled(config.web_search_enabled);
@@ -55,9 +51,6 @@ export default function ToolsPanel() {
           }
           if (config.mcp_enabled !== undefined) {
             setMcpEnabled(config.mcp_enabled);
-          }
-          if (config.google_integration_enabled !== undefined) {
-            setGoogleIntegrationEnabled(config.google_integration_enabled);
           }
           if (config.web_search_config) {
             setWebSearchConfig(config.web_search_config);
@@ -83,7 +76,6 @@ export default function ToolsPanel() {
     setFunctionsEnabled,
     setCodeInterpreterEnabled,
     setMcpEnabled,
-    setGoogleIntegrationEnabled,
     setWebSearchConfig,
     setMcpConfig,
     setVectorStore,
@@ -108,7 +100,6 @@ export default function ToolsPanel() {
       functions_enabled: functionsEnabled,
       code_interpreter_enabled: codeInterpreterEnabled,
       mcp_enabled: mcpEnabled,
-      google_integration_enabled: googleIntegrationEnabled,
       // Preserve the existing web_search_config but merge with current state
       web_search_config: {
         ...(currentConfig.web_search_config || {}),  // Keep existing config from server
@@ -133,7 +124,7 @@ export default function ToolsPanel() {
         },
         body: JSON.stringify({ configurations: config }),
       });
-      
+
       if (!response.ok) {
         const error = await response.text();
         console.error("Failed to save admin configuration:", error);
@@ -147,7 +138,6 @@ export default function ToolsPanel() {
     functionsEnabled,
     codeInterpreterEnabled,
     mcpEnabled,
-    googleIntegrationEnabled,
     webSearchConfig,
     mcpConfig,
     vectorStore,
@@ -159,13 +149,6 @@ export default function ToolsPanel() {
       saveConfig();
     }
   }, [isLoading, saveConfig]);
-
-  React.useEffect(() => {
-    fetch("/api/google/status")
-      .then((r) => r.json())
-      .then((d) => setOauthConfigured(Boolean(d.oauthConfigured)))
-      .catch(() => setOauthConfigured(false));
-  }, []);
 
   if (isLoading) {
     return (
@@ -215,15 +198,6 @@ export default function ToolsPanel() {
           setEnabled={setMcpEnabled}
         >
           <McpConfig />
-        </PanelConfig>
-        <PanelConfig
-          title="Google Integration"
-          tooltip="Connect your Google account to enable Gmail and Calendar features."
-          enabled={oauthConfigured && googleIntegrationEnabled}
-          setEnabled={setGoogleIntegrationEnabled}
-          disabled={!oauthConfigured}
-        >
-          <GoogleIntegrationPanel />
         </PanelConfig>
       </div>
     </div>
