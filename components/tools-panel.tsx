@@ -17,8 +17,6 @@ export default function ToolsPanel() {
     setFunctionsEnabled,
     mcpEnabled,
     setMcpEnabled,
-    codeInterpreterEnabled,
-    setCodeInterpreterEnabled,
     webSearchConfig,
     setWebSearchConfig,
     mcpConfig,
@@ -46,9 +44,6 @@ export default function ToolsPanel() {
           if (config.functions_enabled !== undefined) {
             setFunctionsEnabled(config.functions_enabled);
           }
-          if (config.code_interpreter_enabled !== undefined) {
-            setCodeInterpreterEnabled(config.code_interpreter_enabled);
-          }
           if (config.mcp_enabled !== undefined) {
             setMcpEnabled(config.mcp_enabled);
           }
@@ -74,7 +69,6 @@ export default function ToolsPanel() {
     setWebSearchEnabled,
     setFileSearchEnabled,
     setFunctionsEnabled,
-    setCodeInterpreterEnabled,
     setMcpEnabled,
     setWebSearchConfig,
     setMcpConfig,
@@ -98,7 +92,6 @@ export default function ToolsPanel() {
       web_search_enabled: webSearchEnabled,
       file_search_enabled: fileSearchEnabled,
       functions_enabled: functionsEnabled,
-      code_interpreter_enabled: codeInterpreterEnabled,
       mcp_enabled: mcpEnabled,
       // Preserve the existing web_search_config but merge with current state
       web_search_config: {
@@ -136,7 +129,6 @@ export default function ToolsPanel() {
     webSearchEnabled,
     fileSearchEnabled,
     functionsEnabled,
-    codeInterpreterEnabled,
     mcpEnabled,
     webSearchConfig,
     mcpConfig,
@@ -177,12 +169,6 @@ export default function ToolsPanel() {
         >
           <WebSearchConfig />
         </PanelConfig>
-        <PanelConfig
-          title="Code Interpreter"
-          tooltip="Allows the assistant to run Python code"
-          enabled={codeInterpreterEnabled}
-          setEnabled={setCodeInterpreterEnabled}
-        />
         <PanelConfig
           title="Functions"
           tooltip="Allows to use locally defined functions"

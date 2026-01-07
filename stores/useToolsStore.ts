@@ -34,7 +34,6 @@ export interface ToolsState {
   webSearchEnabled: boolean;
   fileSearchEnabled: boolean;
   functionsEnabled: boolean;
-  codeInterpreterEnabled: boolean;
   vectorStore: VectorStore;
   webSearchConfig: WebSearchConfig;
   mcpEnabled: boolean;
@@ -48,8 +47,6 @@ interface StoreState {
   setWebSearchEnabled: (enabled: boolean) => void;
   functionsEnabled: boolean;
   setFunctionsEnabled: (enabled: boolean) => void;
-  codeInterpreterEnabled: boolean;
-  setCodeInterpreterEnabled: (enabled: boolean) => void;
   vectorStore: VectorStore | null;
   setVectorStore: (store: VectorStore) => void;
   webSearchConfig: WebSearchConfig;
@@ -93,10 +90,6 @@ const useToolsStore = create<StoreState>()(
       mcpEnabled: false,
       setMcpEnabled: (enabled) => {
         set({ mcpEnabled: enabled });
-      },
-      codeInterpreterEnabled: false,
-      setCodeInterpreterEnabled: (enabled) => {
-        set({ codeInterpreterEnabled: enabled });
       },
       setVectorStore: (store) => set({ vectorStore: store }),
       setWebSearchConfig: (config) => set({ webSearchConfig: config }),

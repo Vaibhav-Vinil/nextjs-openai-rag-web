@@ -140,7 +140,6 @@ export const toolsStateSchema = z.object({
     webSearchEnabled: z.boolean().optional(),
     fileSearchEnabled: z.boolean().optional(),
     functionsEnabled: z.boolean().optional(),
-    codeInterpreterEnabled: z.boolean().optional(),
     mcpEnabled: z.boolean().optional(),
     vectorStore: z.object({
         id: safeString(100),

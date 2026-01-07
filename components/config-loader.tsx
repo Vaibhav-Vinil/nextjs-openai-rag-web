@@ -12,7 +12,6 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
     setWebSearchEnabled,
     setFileSearchEnabled,
     setFunctionsEnabled,
-    setCodeInterpreterEnabled,
     setMcpEnabled,
     setWebSearchConfig,
     setMcpConfig,
@@ -38,9 +37,6 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
           if (config.functions_enabled !== undefined) {
             setFunctionsEnabled(config.functions_enabled);
           }
-          if (config.code_interpreter_enabled !== undefined) {
-            setCodeInterpreterEnabled(config.code_interpreter_enabled);
-          }
           if (config.mcp_enabled !== undefined) {
             setMcpEnabled(config.mcp_enabled);
           }
@@ -64,7 +60,6 @@ export default function ConfigLoader({ children, publicView }: ConfigLoaderProps
     setWebSearchEnabled,
     setFileSearchEnabled,
     setFunctionsEnabled,
-    setCodeInterpreterEnabled,
     setMcpEnabled,
     setWebSearchConfig,
     setMcpConfig,
