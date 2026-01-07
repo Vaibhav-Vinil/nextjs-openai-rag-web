@@ -110,7 +110,6 @@ export default function Main() {
   const initialPublicView = (urlParams.get("public") === "true" && Boolean(urlParams.get("conv"))) || (urlParams.get("public_snippet") === "true" && Boolean(urlParams.get("snippet")));
   const [isPublicView] = useState<boolean>(initialPublicView);
   const router = useRouter();
-  const { resetConversation } = useConversationStore();
   const supabase = createClient();
 
   // Check authentication status
