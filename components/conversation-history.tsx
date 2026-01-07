@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare, LogOut, X, Check, Search, Trash2, Share2 } from "lucide-react";
 import Image from "next/image";
 import QueryLimitDisplay from "./query-limit-display";
-import { Conversation, ConversationData, listConversations, deleteConversation, loadConversation, listUserConversationsForAdmin } from "@/lib/conversations";
+import { Conversation, listConversations, deleteConversation, loadConversation, listUserConversationsForAdmin } from "@/lib/conversations";
 import useConversationStore from "@/stores/useConversationStore";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -264,8 +264,8 @@ export default function ConversationHistory({ userEmail, userId, displayName, on
                 key={conv.id}
                 onClick={() => handleLoadConversation(conv.id)}
                 className={`p-3 rounded-xl cursor-pointer transition-all group ${currentConversationId === conv.id
-                    ? "bg-blue-500/30 backdrop-blur-md text-black border border-blue-400/30 shadow-md"
-                    : "bg-white/5 backdrop-blur-sm text-black/80 border border-white/5 hover:bg-white/10 hover:border-white/10 hover:backdrop-blur-md hover:shadow-md"
+                  ? "bg-blue-500/30 backdrop-blur-md text-black border border-blue-400/30 shadow-md"
+                  : "bg-white/5 backdrop-blur-sm text-black/80 border border-white/5 hover:bg-white/10 hover:border-white/10 hover:backdrop-blur-md hover:shadow-md"
                   }`}
               >
                 <div className="flex items-start justify-between gap-2">
