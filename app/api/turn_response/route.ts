@@ -1,6 +1,6 @@
 import { getDeveloperPrompt, MODEL } from "@/config/constants";
 import { getTools } from "@/lib/tools/tools";
-import { checkQueryLimit, recordQuery } from "@/lib/utils/queryLimiter";
+import { checkQueryLimit, recordQuery } from "@/lib/security/queryLimiter";
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 

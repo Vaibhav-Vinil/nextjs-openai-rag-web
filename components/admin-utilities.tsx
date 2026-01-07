@@ -31,7 +31,7 @@ export default function AdminUtilities() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update catalog');
       }
@@ -79,9 +79,9 @@ export default function AdminUtilities() {
         console.error('Error response:', data);
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
-      
+
       console.log('Reset successful:', data);
-      
+
       // Show success message
       setResult({
         success: true,
@@ -107,7 +107,7 @@ export default function AdminUtilities() {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Admin Utilities</h3>
-      
+
       <div className="space-y-2">
         <h4 className="text-sm font-medium">Product Catalog</h4>
         <div className="flex flex-col sm:flex-row gap-4 items-start">
@@ -130,7 +130,7 @@ export default function AdminUtilities() {
             )}
           </Button>
           <p className="text-sm text-muted-foreground">
-            This will delete all conversations and start fresh. This action cannot be undone.&apos;
+            Fetch the latest products from pv.market and update the AI&apos;s knowledge base.
           </p>
         </div>
       </div>
@@ -154,13 +154,13 @@ export default function AdminUtilities() {
             )}
           </Button>
           <p className="text-sm text-muted-foreground">
-            Reset the query limits for all users. Use this if you&apos;ve updated the rate limiting configuration.
+            Clear all daily usage records. Use this if you want to grant all users a fresh daily quota immediately.
           </p>
         </div>
       </div>
 
       {result && (
-        <Alert 
+        <Alert
           variant={result.success ? "default" : "destructive"}
           className="mt-4"
         >

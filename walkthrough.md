@@ -10,91 +10,59 @@ The project is built with **Next.js 15 (App Router)** and follows a modular arch
 /
 ├── app/                    # Next.js App Router pages and API routes
 │   ├── api/                # Backend API endpoints
-│   ├── (auth)/             # Authentication pages
 │   ├── admin/              # Admin dashboard
 │   └── page.tsx            # Main chat interface
 ├── components/             # Reusable UI components
-│   ├── chat/               # Chat-specific components
-│   ├── ui/                 # Generic UI components (buttons, inputs)
-│   └── ...
-├── lib/                    # Utility functions and shared logic
-│   ├── assistant.ts        # AI assistant logic
-│   ├── security/           # Security utilities (Rate limiting)
+│   ├── ui/                 # Generic UI components (shadcn/ui)
+│   └── ...                 # Feature-specific components (chat, tools)
+├── lib/                    # Core business logic and utilities
+│   ├── assistant.ts        # AI assistant turn handling
+│   ├── security/           # Rate limiting and query management
 │   ├── validation/         # Input validation schemas (Zod)
 │   ├── supabase/           # Supabase client/server setup
-│   └── tools/              # AI tools (weather, search, etc.)
+│   └── tools/              # AI tools (web search, file search, MCP)
+├── config/                 # Application configuration
+│   ├── constants.ts        # AI model, developer prompt, branding
+│   └── admin-emails.ts     # Admin access whitelist
 ├── stores/                 # State management (Zustand)
-└── public/                 # Static assets
+└── public/                 # Static assets (logos, icons)
 ```
 
 ## 2. Core Features
 
 ### 2.1 AI Chat Interface
-- **State Management**: Uses `zustand` (`useConversationStore`) to manage chat history and UI state.
-- **Streaming Responses**: The assistant streams responses token-by-token using `ReadableStream`.
-- **Tool Integration**: Supports dynamic tools like web search, file search, and custom functions.
+- **State Management**: Uses `zustand` (`useConversationStore`) for chat history and `useToolsStore` for tool preferences.
+- **Streaming Responses**: The assistant streams responses token-by-token using OpenAI's response API via `/api/turn_response`.
+- **Branding**: Heavily customized for **pv.market** with specialized developer prompts.
 
-### 2.2 Authentication
-- **Supabase Auth**: Handles user signup, login, and session management.
-- **Google Sign-In**: Integrated via `signInWithOAuth` in `components/google-signin-button.tsx`.
-- **Middleware**: `middleware.ts` protects routes and ensures authenticated access to specific pages.
-- **Secure Phone Validation**: Server-side endpoint `/api/auth/validate-phone` prevents API key exposure.
+### 2.2 Security & Authentication
+- **Supabase Auth**: Email/password authentication for users.
+- **Rate Limiting**: `lib/security/rate-limiter.ts` implements strictly managed limits for AI and Auth endpoints based on IP or User ID.
+- **Daily Query Limits**: Users are limited (e.g., 5 queries per day) to manage costs and prevent abuse, handled by `lib/security/queryLimiter.ts`.
+- **Input Validation**: All API routes use **Zod** for strict input validation, preventing malformed requests or injection.
 
-### 2.3 Security (New)
-- **Input Validation**: All API routes validate input using **Zod** schemas defined in `lib/validation/schemas.ts`.
-  - Strict type checking
-  - Length limits for strings (Max 100-50000 chars)
-  - Array size limits (Max 500-1000 items)
-- **Rate Limiting**: `lib/security/rate-limiter.ts` implements robust rate limiting:
-  - **Auth**: 10 req / 15 min (Strict)
-  - **AI Chat**: 30 req / 1 min
-  - **Standard API**: 100 req / 1 min
-  - **Admin**: 200 req / 1 min
-- **CSP**: strict Content Security Policy headers in `middleware.ts`.
+### 2.3 Knowledge Integration
+- **Web Search**: Dynamic real-time search for current solar industry developments.
+- **File Search (Vector Store)**: Semantic search over the pv.market product catalog and technical documentation.
+- **MCP Servers**: Support for Model Context Protocol to integrate with external data services.
 
-### 2.4 Data Management
-- **Supabase Database**: Stores users, conversations, messages, and vector embeddings.
-- **Vector Search**: Uses `pgvector` for semantic search over documents.
-
-## 3. Key Components
-
-### `lib/assistant.ts`
-Handles the core logic for the AI assistant:
-- Sends user messages to `/api/turn_response`.
-- Processes streaming responses.
-- Handles tool calls (web search, file search) and recursively calls the assistant with tool outputs.
-
-### `lib/tools/tools.ts`
-Defines the tools available to the AI:
-- **web_search**: Search the internet using permissive domain logic.
-- **file_search**: Search uploaded documents.
-- **get_weather**: Example functional tool.
+## 3. Key Backend Logic
 
 ### `app/api/turn_response/route.ts`
-The main backend endpoint for the AI:
-- Validates input (messages, tools state).
-- Checks user query limits.
-- Calls OpenAI API with tool definitions.
-- Returns a streaming response.
+- The core orchestrator for AI turns.
+- Check user authentication and rate limits.
+- Validates the daily query budget.
+- Clean messages to satisfy OpenAI API requirements.
+- Returns a `ReadableStream` for real-time tokens.
 
-## 4. Setup & Configuration
+### `lib/assistant.ts`
+- Handles the front-end side of the AI interaction.
+- Manages the switch-case for streaming events (delta, tool call, done).
+- Automatically triggers tool executions (like MCP or Functions) and starts new turns if needed.
 
-- **Environment Variables**: Managed in `.env` (not committed).
-  - `OPENAI_API_KEY`: For AI models.
-  - `NEXT_PUBLIC_SUPABASE_URL` / `ANON_KEY`: For database access.
-  - `ABSTRACT_API_KEY`: For phone validation (server-side only).
+## 4. Maintenance & Best Practices
 
-## 5. Deployment
-
-- **Vercel**: Optimized for Vercel deployment.
-- **Build Command**: `npm run build` checks types and linting.
-- **Start Command**: `npm start` runs the production server.
-- **Console Logs**: configured in `next.config.mjs` to automatically strip `console.log` in production builds (preserving errors/warns).
-
-## 6. Recent Updates
-
-- **Security Hardening**:
-  - Moved phone validation to server-side to secure API keys.
-  - Implemented comprehensive rate limiting across all public endpoints.
-  - Added strict input validation for all API routes.
-  - Fixed CSP configuration for browser compatibility.
+- **Strict Types**: The project uses TypeScript throughout to minimize runtime errors.
+- **Environment Variables**: Sensitive keys (OpenAI, Supabase, Abstract API) are stored in `.env` and never committed.
+- **Visuals**: Tailwind CSS is used for all styling, ensuring a fast and consistent UI.
+- **Clean Code**: Redundant features like legacy Google integration and Code Interpreter were removed to keep the bundle size small and focus on the solar product use case.
