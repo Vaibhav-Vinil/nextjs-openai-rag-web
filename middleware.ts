@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 // Security headers configuration
 const securityHeaders = (isProduction: boolean) => {
@@ -106,15 +107,52 @@ const securityHeaders = (isProduction: boolean) => {
 };
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next();
   const { pathname } = request.nextUrl;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // Skip middleware for Next.js internal requests and API routes
+  // Skip middleware for Next.js internal requests, API routes, and static files
   if (pathname.startsWith('/_next') || pathname.includes('.') || pathname.startsWith('/api/')) {
+    const response = NextResponse.next();
+    // Apply security headers even for internal requests
+    securityHeaders(isProduction).forEach(({ key, value }) => {
+      response.headers.set(key, value);
+    });
     return response;
   }
 
+  // Handle authentication redirects server-side (works even if chunks fail to load)
+  // Only check auth for root path and protected routes
+  if (pathname === '/' || pathname === '') {
+    try {
+      const supabase = await createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check if this is a public/shared conversation view
+      const searchParams = request.nextUrl.searchParams;
+      const isPublicView = (searchParams.get('public') === 'true' && Boolean(searchParams.get('conv'))) ||
+                          (searchParams.get('public_snippet') === 'true' && Boolean(searchParams.get('snippet'))) ||
+                          Boolean(searchParams.get('snippetId'));
+      
+      // If not authenticated and not a public view, redirect to login
+      if (!session && !isPublicView) {
+        const loginUrl = new URL('/login', request.url);
+        // Preserve any query params that might be needed
+        loginUrl.searchParams.set('redirect', pathname);
+        const response = NextResponse.redirect(loginUrl);
+        // Apply security headers
+        securityHeaders(isProduction).forEach(({ key, value }) => {
+          response.headers.set(key, value);
+        });
+        return response;
+      }
+    } catch (error) {
+      // If auth check fails, log but don't block (let client-side handle it)
+      console.error('Middleware auth check error:', error);
+    }
+  }
+
+  const response = NextResponse.next();
+  
   // Apply security headers
   securityHeaders(isProduction).forEach(({ key, value }) => {
     response.headers.set(key, value);
