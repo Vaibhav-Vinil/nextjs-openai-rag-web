@@ -1,36 +1,195 @@
-# pvAI - Solar Energy Assistant
+# AI Intelligent Assistant
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-![NextJS](https://img.shields.io/badge/Built_with-NextJS-blue)
-![OpenAI API](https://img.shields.io/badge/Powered_by-OpenAI_API-orange)
+[![NextJS](https://img.shields.io/badge/Built_with-NextJS-blue)](https://nextjs.org/)
+[![OpenAI API](https://img.shields.io/badge/Powered_by-OpenAI_API-orange)](https://openai.com/)
 [![pvAI Logo](https://img.shields.io/badge/pvAI-Solar_Assistant-blue)](https://pv.market)
 
-pvAI is a specialized AI assistant for the solar energy industry, built on Next.js and powered by OpenAI's API. It provides intelligent responses to solar energy-related queries, product information, and technical support.
+> **Note:** This project was forked from [openai/openai-responses-starter-app](https://github.com/openai/openai-responses-starter-app.git)
 
-## Features
+## 📋 Table of Contents
+- [Tech Stack](#-tech-stack)
+- [System Overview](#-system-overview)
+- [Features](#-features)
+- [Admin Panel](#-admin-panel)
+- [Setup & Configuration](#-setup--configuration)
+- [Environment Variables](#-environment-variables)
 
-- **Solar Energy Expertise**: Specialized in solar panels, inverters, batteries, and renewable energy topics
-- **Multi-turn Conversations**: Maintains context for natural, flowing discussions
-- **Real-time Data**: Web search integration for up-to-date information
-- **File Search**: Upload and query technical documents and specifications
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **User Authentication**: Secure access with role-based permissions
-- **Conversation History**: Save and revisit previous conversations
-- **Admin Dashboard**: Monitor and manage system usage
+## 🛠 Tech Stack
 
-## How to use
+- **Frontend**: Next.js, React, TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Authentication**: Supabase Auth
+- **Database**: Supabase (PostgreSQL)
+- **AI**: OpenAI API
 
-1. **Set up the OpenAI API:**
+## 🌐 System Overview
 
-   - If you're new to the OpenAI API, [sign up for an account](https://platform.openai.com/signup).
-   - Follow the [Quickstart](https://platform.openai.com/docs/quickstart) to retrieve your API key.
+The AI Intelligent Assistant is a centralized workspace designed to help users find information by analyzing files and performing web searches.
 
-2. **Set the OpenAI API key:**
+### Core Capabilities
+- Browse the live web for up-to-date information
+- Read and analyze uploaded documents
+- Transform raw data sources (PDFs, websites, internal files) into conversational chat format
 
-   2 options:
+## 🔄 End-to-End Workflow
 
-   - Set the `OPENAI_API_KEY` environment variable [globally in your system](https://platform.openai.com/docs/libraries#create-and-export-an-api-key)
-   - Set the `OPENAI_API_KEY` environment variable in the project: Create a `.env` file at the root of the project and add the following line (see `.env.example` for reference):
+1. **Access**
+   - User logs in using Google account or email
+   
+2. **Identity Verification**
+   - System verifies user's phone number
+   
+3. **Inquiry**
+   - User submits questions via chat interface
+   
+4. **Information Gathering**
+   - System automatically determines source:
+     - Web search
+     - Uploaded files
+     - Both sources
+     
+5. **Response**
+   - System provides detailed answer
+   - References included only if information comes from pv.market
+   
+6. **Storage**
+   - Complete conversation history saved for future reference
+
+## ✨ Features
+
+### 🔒 Automatic Phone Validation
+**Location**: `app/api/auth/validate-phone/route.ts`  
+**Trigger**: During first login/account setup  
+**Purpose**: Adds security layer to confirm active phone numbers and prevent bot usage.
+
+**Flow**:
+1. User enters phone number with country code
+2. AbstractAPI validates the number
+3. Invalid numbers block further access
+
+### 🌍 Web Search
+**Type**: Native OpenAI Tool  
+**Availability**: Accessible during any chat session
+
+**Purpose**: Enables real-time internet browsing for current information not in training data.
+
+**Flow**:
+1. System detects need for current information
+2. Performs background web search
+3. Summarizes top results into response
+
+### 📂 File Search
+**Type**: Native OpenAI Tool  
+**Availability**: Accessible during any chat session
+
+**Purpose**: Searches documents in OpenAI's vector store (product details/internal data).
+
+**Vector Store Management**:
+- Data can be added via Admin Panel
+- Recommended: Use "Update Product Catalog" button
+
+**Catalog Update Process**:
+1. Fetches data from: `https://admin.pv.market/api/catalog`
+2. Cleans data by:
+   - Removing irrelevant information
+   - Filtering out "Dummy" warehouses
+3. Sends cleaned data to OpenAI vector store for indexing
+
+## 👨‍💼 Admin Control Panel
+**Access**: Admin icon (top-right corner, authorized users only)
+
+**Capabilities**:
+- Toggle Web Search on/off
+- Toggle File Search on/off
+- Reset query limits (credits) for users
+- View user conversation history
+- Open user sessions in read-only mode
+
+## 🏗️ Setup & Configuration
+
+
+**Handles**:
+- User authentication
+- Security
+- Permanent data storage
+
+### Database Tables
+
+#### `admin_config`
+- Centralized settings
+- Controls feature availability in real-time
+
+#### `conversations`
+- Stores user messages
+- Records tool outputs
+- Maintains chatbot responses
+
+#### `snippets`
+- Powers the Sharing feature
+- Stores shared content with unique IDs
+- Allows public access to shared content
+
+#### `user_queries`
+- Tracks daily usage for quota enforcement
+- Records timestamp for each user message
+- Implements 5 messages/user/day limit
+
+#### `vector_store_config`
+- Stores OpenAI Vector Store ID
+- Manages product catalog versions
+
+## 🔐 Security
+
+### Default Admin Account
+```
+Username: root@example.com
+Password: 121212
+```
+
+### Environment Variables
+Create a `.env` file with the following variables:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your_key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+OPENAI_API_KEY=your_openai_key
+NODE_ENV=development
+NEXT_PUBLIC_SHARED_VECTOR_STORE_ID=vs_shared_default
+NEXT_PUBLIC_SHARED_VECTOR_STORE_NAME=Shared_Documents
+NEXT_PUBLIC_ABSTRACT_API_KEY=your_abstract_api_key
+ENABLE_STRICT_SECURITY=true
+```
+
+## 🔗 External Integrations
+
+### AbstractAPI
+- Validates phone numbers
+- Prevents automated bot usage
+
+### Google OAuth
+- Enables passwordless login
+- Bypasses email verification
+- [Setup Guide](https://youtube.com/watch?v=example)
+
+### Resend (Email Service)
+**Purpose**:
+- Password reset emails
+- Email confirmations
+
+**Configuration**:
+- Integrated via SMTP in Supabase
+- Sender: team@pv-ai.pv.market
+- [Setup Reference](https://youtube.com/watch?v=example)
+
+## 📝 Notes
+- All chats are automatically saved to Supabase
+- Context is maintained within individual chat sessions
+- Information is not shared across different chat windows
 
    ```bash
    OPENAI_API_KEY=<your_api_key>
