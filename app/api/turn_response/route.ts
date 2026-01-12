@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       return new Response(
         JSON.stringify({
           error: "Daily query limit reached",
-          message: `You have reached your daily query limit. You may try again tomorrow, or contact us at info@pv.market or +971 523825549 for further support.`,
+          message: `You have reached your daily query limit. You may try again tomorrow, or contact us at support@example.com or +1 555-0123 for further support.`,
           limitReached: true
         }),
         { status: 429, headers: { 'Content-Type': 'application/json' } }

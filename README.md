@@ -3,7 +3,6 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![NextJS](https://img.shields.io/badge/Built_with-NextJS-blue)](https://nextjs.org/)
 [![OpenAI API](https://img.shields.io/badge/Powered_by-OpenAI_API-orange)](https://openai.com/)
-[![pvAI Logo](https://img.shields.io/badge/pvAI-Solar_Assistant-blue)](https://pv.market)
 
 > **Note:** This project was forked from [openai/openai-responses-starter-app](https://github.com/openai/openai-responses-starter-app.git)
 
@@ -91,7 +90,7 @@ The AI Intelligent Assistant is a centralized workspace designed to help users f
 - Recommended: Use "Update Product Catalog" button
 
 **Catalog Update Process**:
-1. Fetches data from: `https://admin.pv.market/api/catalog`
+1. Fetches data from: `https://place-holder-company-name/api/catalog`
 2. Cleans data by:
    - Removing irrelevant information
    - Filtering out "Dummy" warehouses
@@ -142,11 +141,6 @@ The AI Intelligent Assistant is a centralized workspace designed to help users f
 
 ## 🔐 Security
 
-### Default Admin Account
-```
-Username: root@example.com
-Password: 121212
-```
 
 ### Environment Variables
 Create a `.env` file with the following variables:
@@ -183,7 +177,7 @@ ENABLE_STRICT_SECURITY=true
 
 **Configuration**:
 - Integrated via SMTP in Supabase
-- Sender: team@pv-ai.pv.market
+- Sender: team@example.com
 - [Setup Reference](https://youtube.com/watch?v=example)
 
 ## 📝 Notes
@@ -198,7 +192,7 @@ ENABLE_STRICT_SECURITY=true
 3. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/openai/openai-responses-starter-app.git
+   git clone https://github.com/Vaibhav-Vinil/nextjs-openai-rag-web.git
    ```
 
 4. **Install dependencies:**

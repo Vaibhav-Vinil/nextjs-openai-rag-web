@@ -90,7 +90,7 @@ export const handleTurn = async (
           event: "error",
           data: {
             type: "query_limit_exceeded",
-            message: errorData.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at <a href='mailto:info@pv.market' class='text-blue-600 hover:underline'>info@pv.market</a> or <a href='tel:+971523825549' class='text-blue-600 hover:underline'>+971 523825549</a> for further support."
+            message: errorData.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at <a href='mailto:support@example.com' class='text-blue-600 hover:underline'>support@example.com</a> or <a href='tel:+15550123456' class='text-blue-600 hover:underline'>+1 555-0123</a> for further support."
           }
         });
       } else {
@@ -173,9 +173,9 @@ export const processMessages = async () => {
           let errorMessage = "An unexpected error occurred. Please try again later.";
 
           if (data.type === "query_limit_exceeded") {
-            errorMessage = data.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at [info@pv.market](mailto:info@pv.market) or [+971 523825549](tel:+971523825549) for further support.";
+            errorMessage = data.message || "You have reached your daily query limit. You may try again tomorrow, or contact us at [support@example.com](mailto:support@example.com) or [+1 555-0123](tel:+15550123456) for further support.";
           } else if (data.code === "insufficient_quota" || data.type === "quota_exceeded") {
-            errorMessage = "Our AI service is currently experiencing high demand. Please try again later or contact us at [info@pv.market](mailto:info@pv.market) or [+971 523825549](tel:+971523825549) for further support.";
+            errorMessage = "Our AI service is currently experiencing high demand. Please try again later or contact us at [support@example.com](mailto:support@example.com) or [+1 555-0123](tel:+15550123456) for further support.";
           } else if (data.message) {
             errorMessage = data.message;
           }
