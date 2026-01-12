@@ -126,13 +126,13 @@ export async function middleware(request: NextRequest) {
     try {
       const supabase = await createClient();
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       // Check if this is a public/shared conversation view
       const searchParams = request.nextUrl.searchParams;
       const isPublicView = (searchParams.get('public') === 'true' && Boolean(searchParams.get('conv'))) ||
-                          (searchParams.get('public_snippet') === 'true' && Boolean(searchParams.get('snippet'))) ||
-                          Boolean(searchParams.get('snippetId'));
-      
+        (searchParams.get('public_snippet') === 'true' && Boolean(searchParams.get('snippet'))) ||
+        Boolean(searchParams.get('snippetId'));
+
       // If not authenticated and not a public view, redirect to login
       if (!session && !isPublicView) {
         const loginUrl = new URL('/login', request.url);
@@ -152,7 +152,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next();
-  
+
   // Apply security headers
   securityHeaders(isProduction).forEach(({ key, value }) => {
     response.headers.set(key, value);

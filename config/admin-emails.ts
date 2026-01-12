@@ -1,5 +1,5 @@
 export const adminEmails = [
-  "root@example.com", "info@pv.market"
+  "root@example.com"
   // Add more admin emails here
 ];
 

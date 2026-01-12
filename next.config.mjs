@@ -30,38 +30,6 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'pvmarket.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.pvmarket.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'pv.market',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.pv.market',
-      },
-      {
-        protocol: 'https',
-        hostname: 'pv-ai.pv.market',
-      },
-      {
-        protocol: 'https',
-        hostname: 'storage.googleapis.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-      },
-      {
         protocol: 'http',
         hostname: 'localhost',
         port: '3000',

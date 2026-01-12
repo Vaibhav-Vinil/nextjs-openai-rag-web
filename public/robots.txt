@@ -14,4 +14,4 @@ Disallow: /settings/
 Disallow: /*?*
 
 # Sitemap location
-Sitemap: https://pv-ai.pv.market/sitemap.xml
+Sitemap: https://place-holder-company-name/sitemap.xml
