@@ -50,3 +50,4 @@ env/
 /*/Lib/
 /*/Scripts/
 pyvenv.cfg
+.env
