@@ -59,7 +59,7 @@ export async function POST() {
 
     console.log('Fetching catalog data from API...');
     // Step 1: Fetch data from the API
-    const apiUrl = 'https://admin.pv.market/api/catalog';
+    const apiUrl = 'https://admin.company.com/api/products';
     const response = await fetch(apiUrl);
     
     if (!response.ok) {
@@ -89,9 +89,9 @@ export async function POST() {
         const lastSlashIndex = path.lastIndexOf('/');
         if (lastSlashIndex >= 0) {
           const slug = path.substring(lastSlashIndex + 1);
-          productUrl = `https://pv.market/products/${slug}`;
+          productUrl = `https://company.com/products/${slug}`;
         } else {
-          productUrl = `https://pv.market/products/${path.replace(/^\/+|\/+$/g, '')}`;
+          productUrl = `https://company.com/products/${path.replace(/^\/+|\/+$/g, '')}`;
         }
       }
 

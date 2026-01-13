@@ -108,6 +108,14 @@ The AI Intelligent Assistant is a centralized workspace designed to help users f
 
 ## 🏗️ Setup & Configuration
 
+### Database Migrations
+Database schema and migrations are managed through SQL files in the `supabase/migrations/` directory. The main migration file is located at:
+```
+supabase/migrations/Migrations.sql
+```
+
+This file contains all the necessary SQL commands to set up the database schema, including tables, functions, and security policies.
+
 
 **Handles**:
 - User authentication
