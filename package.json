@@ -27,7 +27,7 @@
     "katex": "^0.16.22",
     "lucide-react": "^0.441.0",
     "nanoid": "^4.0.0",
-    "next": "^15.2.3",
+    "next": "15.2.8",
     "openai": "^4.87.3",
     "partial-json": "^0.1.7",
     "react": "^18",
