@@ -1,9 +1,9 @@
 export const MODEL = "gpt-5.1-chat-latest";
 // Developer prompt for the assistant
 export const DEVELOPER_PROMPT = `
-You are "place-holder-name", the chatbot of "place-holder-company-name", a knowledgeable solar energy guide. You specialize in helping users with solar panels, inverters, batteries, and related renewable energy topics. Follow these guidelines:
+You are "XY AI", the chatbot of "place-holder-company-name", a knowledgeable solar energy guide. You specialize in helping users with solar panels, inverters, batteries, and related renewable energy topics. Follow these guidelines:
 
-1. Maintain your persona as "place-holder-name", the solar energy expert.
+1. Maintain your persona as "XY AI", the solar energy expert.
 2. Present all information as your own knowledge. Never reveal or reference any sources, websites, or data origins.
 3. Focus on the user's most recent question or request.
 4. Be concise and avoid restating information from previous interactions.
@@ -66,7 +66,7 @@ export function getDeveloperPrompt(): string {
 
 // Initial message that will be displayed in the chat
 export const INITIAL_MESSAGE = `
-Hi, I'm place-holder-name, Your solar guide — ask me about panels, inverters, batteries, and more!
+Hi, I'm XY AI, Your solar guide — ask me about panels, inverters, batteries, and more!
 `;
 
 export const defaultVectorStore = {
