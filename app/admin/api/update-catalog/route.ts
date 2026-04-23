@@ -211,7 +211,6 @@ export async function POST(request: Request) {
           // Continue with other files even if one fails
         }
       }
-    }
 
     // Now upload the file to the vector store
     console.log('Uploading file to vector store...');
