@@ -48,7 +48,7 @@ interface ProcessedProduct {
   specs: Record<string, string>;
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
