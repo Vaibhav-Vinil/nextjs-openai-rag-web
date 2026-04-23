@@ -117,38 +117,17 @@ export async function POST(request: Request) {
 
     // Step 3: Convert to JSON string
     const jsonData = JSON.stringify(processedData, null, 2);
+
+    // Step 4: Upload the file to OpenAI directly
+    console.log('Uploading catalog file to OpenAI...');
     const fileBuffer = Buffer.from(jsonData, 'utf-8');
-
-    // Step 4: Upload the file using the existing endpoint
-    console.log('Uploading catalog file...');
-
-    // Get base URL dynamically from request to support both local and production
-    const host = request.headers.get('host');
-    const protocol = host?.includes('localhost') ? 'http' : 'https';
-    
-    console.log(`DEBUG: process.env.NEXT_PUBLIC_APP_URL = "${process.env.NEXT_PUBLIC_APP_URL}"`);
-    console.log(`DEBUG: request.headers.get('host') = "${host}"`);
-    
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
-    
-    console.log(`DEBUG: Final baseUrl = "${baseUrl}"`);
-    const uploadResponse = await fetch(`${baseUrl}/api/vector_stores/upload_file`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileObject: {
-          name: 'catalog.json',
-          content: fileBuffer.toString('base64')
-        }
-      })
+    const fileBlob = new Blob([fileBuffer], { type: 'application/json' });
+    const file = await openai.files.create({
+      file: new File([fileBlob], 'catalog.json'),
+      purpose: 'assistants',
     });
-
-    if (!uploadResponse.ok) {
-      const error = await uploadResponse.json().catch(() => ({}));
-      throw new Error(`Failed to upload file: ${error.message || 'Unknown error'}`);
-    }
-
-    const { id: fileId } = await uploadResponse.json();
+    
+    const fileId = file.id;
     console.log('File uploaded successfully, ID:', fileId);
 
     // Step 5: Get or create the vector store
@@ -185,24 +164,10 @@ export async function POST(request: Request) {
     if (needToCreateStore) {
       // Create a new vector store if one doesn't exist
       console.log('Creating new vector store...');
-      const createResponse = await fetch(`${baseUrl}/api/vector_stores/create_store`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: storeName })
+      const vectorStore = await openai.vectorStores.create({
+        name: storeName,
       });
-
-      if (!createResponse.ok) {
-        const error = await createResponse.json().catch(() => ({}));
-        throw new Error(`Failed to create vector store: ${error.message || 'Unknown error'}`);
-      }
-
-      const createData = await createResponse.json();
-      vectorStoreId = createData.id || createData.store_id;
-
-      if (!vectorStoreId) {
-        throw new Error('Failed to get vector store ID from create response');
-      }
-
+      vectorStoreId = vectorStore.id;
       console.log('Created new vector store:', vectorStoreId);
 
       // Save the new store ID to our config
@@ -223,14 +188,11 @@ export async function POST(request: Request) {
 
     // Step 5: Get current files in the vector store and unlink them
     console.log('Getting current files in vector store...');
-    const listFilesResponse = await fetch(`${baseUrl}/api/vector_stores/list_files?vector_store_id=${vectorStoreId}`);
+    const files = await openai.vectorStores.files.list(vectorStoreId);
+    const currentFiles = files.data || [];
 
-    if (listFilesResponse.ok) {
-      const filesData = await listFilesResponse.json();
-      const currentFiles = filesData.data || [];
-
-      // Unlink and delete all existing files
-      console.log(`Found ${currentFiles.length} existing files, cleaning up...`);
+    // Unlink and delete all existing files
+    console.log(`Found ${currentFiles.length} existing files, cleaning up...`);
       for (const file of currentFiles) {
         try {
           // First unlink from vector store
