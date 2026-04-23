@@ -57,13 +57,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Fetching catalog data from API...');
-    // Step 1: Fetch data from the API
+    console.log('--- DEBUG: CATALOG UPDATE START ---');
     const apiUrl = process.env.CATALOG_API_URL;
+    console.log(`DEBUG: process.env.CATALOG_API_URL = "${apiUrl}"`);
+    
     if (!apiUrl) {
       throw new Error('CATALOG_API_URL environment variable is not defined');
     }
-    console.log(`Using API URL: ${apiUrl}`);
     const response = await fetch(apiUrl);
 
     if (!response.ok) {
@@ -125,9 +125,13 @@ export async function POST(request: Request) {
     // Get base URL dynamically from request to support both local and production
     const host = request.headers.get('host');
     const protocol = host?.includes('localhost') ? 'http' : 'https';
+    
+    console.log(`DEBUG: process.env.NEXT_PUBLIC_APP_URL = "${process.env.NEXT_PUBLIC_APP_URL}"`);
+    console.log(`DEBUG: request.headers.get('host') = "${host}"`);
+    
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
-
-    console.log(`Using base URL for internal API: ${baseUrl}`);
+    
+    console.log(`DEBUG: Final baseUrl = "${baseUrl}"`);
     const uploadResponse = await fetch(`${baseUrl}/api/vector_stores/upload_file`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
